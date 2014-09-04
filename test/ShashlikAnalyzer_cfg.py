@@ -1,10 +1,13 @@
+
+import httplib, urllib, urllib2, types, string, os, sys
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("ShashlikAna")
+process = cms.Process("shashlik")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1000)
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
@@ -14,8 +17,7 @@ process.source = cms.Source("PoolSource",
     )
 )
 
-process.load("ShashlikAnalyzer.ShashlikAnalyzer.ShashlikAnalyzer_cfi");
-
+process.load("ShashlikAnalyzer.ShashlikAnalyzer.ShashlikAnalyzer_cfi")
 process.ShashlikAna.outputFile = cms.string("ShashlikAnalyzer_RelValSingleElectronPt35Extended_DES23_62_V1_UPG2023SHNoTaper-v1.root")
 
 

@@ -6,4 +6,8 @@
 <use name="DataFormats/EgammaReco"/>
 <use name="clhep"/>
 <use name="root"/>
-<flags EDM_PLUGIN="1"/>
+<library   file="*.cc" name="ShashlikAnalyzerShashlikAnalyzerPlugins">
+  <flags EDM_PLUGIN="1"/>
+</library>
+<Flags CXXFLAGS="-g"/>
+

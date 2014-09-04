@@ -1,8 +1,8 @@
 import FWCore.ParameterSet.Config as cms
 
 
-from RecoEgamma.Examples.mcAnalyzerStdBiningParameters_cff import *
-from RecoEgamma.Examples.mcAnalyzerFineBiningParameters_cff import *
+from ShashlikAnalyzer.ShashlikAnalyzer.mcAnalyzerStdBiningParameters_cff import *
+from ShashlikAnalyzer.ShashlikAnalyzer.mcAnalyzerFineBiningParameters_cff import *
 
 ShashlikAna = cms.EDAnalyzer('ShashlikAnalyzer',
     electronCollection = cms.InputTag("gsfElectrons"),

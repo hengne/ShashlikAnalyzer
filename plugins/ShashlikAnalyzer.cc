@@ -48,6 +48,8 @@
 #include "TTree.h"
 #include <iostream>
 
+DEFINE_FWK_MODULE(ShashlikAnalyzer);
+
 using namespace reco;
 
 ShashlikAnalyzer::ShashlikAnalyzer(const edm::ParameterSet& conf)
@@ -1743,7 +1745,6 @@ ShashlikAnalyzer::~ShashlikAnalyzer()
 void
 ShashlikAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  std::cout << "analyzing new event " << std::endl;
   // get electrons
 
   edm::Handle<GsfElectronCollection> gsfElectrons;
