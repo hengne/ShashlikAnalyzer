@@ -19,7 +19,7 @@
 //
 
 // user include files
-#include "RecoEgamma/Examples/plugins/ShashlikAnalyzer.h"
+#include "ShashlikAnalyzer/ShashlikAnalyzer/plugins/ShashlikAnalyzer.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Framework/interface/Event.h"
