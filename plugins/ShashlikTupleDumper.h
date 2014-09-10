@@ -21,14 +21,6 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-
-#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
-
-#include "TrackingTools/TrajectoryState/interface/TrajectoryStateTransform.h"
-
-#include <vector>
-
-class MagneticField;
 class TFile;
 class TTree;
 
@@ -44,24 +36,40 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   virtual void endJob();
   virtual void analyze(const edm::Event& e, const edm::EventSetup& c);
 
+  void bookTree();
+
  private:
 
-  TrajectoryStateTransform transformer_;
-  edm::ESHandle<TrackerGeometry> pDD;
-  edm::ESHandle<MagneticField> theMagField;
   TFile *histfile_;
-  TTree *tree_;
-  float mcEnergy[10], mcEta[10], mcPhi[10], mcPt[10], mcQ[10];
-  float superclusterEnergy[10], superclusterEta[10], superclusterPhi[10], superclusterEt[10];
-  float seedMomentum[10], seedEta[10], seedPhi[10], seedPt[10], seedQ[10];
+  TTree *tree;
+  
+  // variables for the tree
+  ULong64_t RunNum, EvtNum, LumNum;
+  double VtxXTrue, VtxYTrue, VtxZTrue;
+  double VtxX, VtxY, VtxZ;
+  
+  int Nparts, Nelecs, Nphots;
+
+  double ETrue[100], PtTrue[100], PxTrue[100], PyTrue[100], PzTrue[100];
+  double EtaTrue[100], PhiTrue[100], ChargeTrue[100];
+  int PDGTrue[100];
+
+  double ESc[100], EtSc[100], EtaSc[100], PhiSc[100];
+  double EScSeed[100], EtScSeed[100], EtaScSeed[100], PhiScSeed[100];
+
+  double Charge[100];
+  int PDG[100];
+
+  double PTrackOut[100], PtTrackOut[100], PxTrackOut[100], PyTrackOut[100], PzTrackOut[100];
+  double EtaTrackOut[100], PhiTrackOut[100];
+
+  double PTrackIn[100], PtTrackIn[100], PxTrackIn[100], PyTrackIn[100], PzTrackIn[100];
+  double EtaTrackIn[100], PhiTrackIn[100];
 
   std::string outputFile_;
   edm::InputTag electronCollection_;
   edm::InputTag  mcTruthCollection_;
-  bool readAOD_;
 
-  double maxPt_;
-  double maxAbsEta_;
   double deltaR_;
   std::vector<int> matchingIDs_;
   std::vector<int> matchingMotherIDs_;

@@ -45,7 +45,6 @@
 
 DEFINE_FWK_MODULE(ShashlikTupleDumper);
 
-using namespace reco;
 
 ShashlikTupleDumper::ShashlikTupleDumper(const edm::ParameterSet& conf)
  {
@@ -53,29 +52,85 @@ ShashlikTupleDumper::ShashlikTupleDumper(const edm::ParameterSet& conf)
   histfile_ = new TFile(outputFile_.c_str(),"RECREATE");
   electronCollection_=conf.getParameter<edm::InputTag>("electronCollection");
   mcTruthCollection_ = conf.getParameter<edm::InputTag>("mcTruthCollection");
-  readAOD_ = conf.getParameter<bool>("readAOD");
-  maxPt_ = conf.getParameter<double>("MaxPt");
-  maxAbsEta_ = conf.getParameter<double>("MaxAbsEta");
   deltaR_ = conf.getParameter<double>("DeltaR");
   matchingIDs_ = conf.getParameter<std::vector<int> >("MatchingID");
   matchingMotherIDs_ = conf.getParameter<std::vector<int> >("MatchingMotherID");
 
  }
 
-void ShashlikTupleDumper::beginJob(){
+void 
+ShashlikTupleDumper::beginJob()
+{
+  histfile_->cd();
+  bookTree();
+  
+}
 
+void 
+ShashlikTupleDumper::bookTree()
+{
+  histfile_->cd();
+  tree = new TTree("tree", "tree");
+
+  tree->Branch("RunNum", &RunNum,"RunNum/l");
+  tree->Branch("EvtNum", &EvtNum,"EvtNum/l");
+  tree->Branch("LumNum", &LumNum,"LumNum/l");
+  tree->Branch("VtxXTrue", &VtxXTrue,"VtxXTrue/D");
+  tree->Branch("VtxYTrue", &VtxYTrue,"VtxYTrue/D");
+  tree->Branch("VtxZTrue", &VtxZTrue,"VtxZTrue/D");
+  tree->Branch("VtxX", &VtxX,"VtxX/D");
+  tree->Branch("VtxY", &VtxY,"VtxY/D");
+  tree->Branch("VtxZ", &VtxZ,"VtxZ/D");
+  tree->Branch("Nparts", &Nparts,"Nparts/I");
+  tree->Branch("Nelecs", &Nelecs,"Nelecs/I");
+  tree->Branch("Nphots", &Nphots,"Nphots/I"); 
+  tree->Branch("ETrue", ETrue,"ETrue[Nparts]/D");
+  tree->Branch("PtTrue", PtTrue,"PtTrue[Nparts]/D");
+  tree->Branch("PxTrue", PxTrue,"PxTrue[Nparts]/D");
+  tree->Branch("PyTrue", PyTrue,"PyTrue[Nparts]/D");
+  tree->Branch("PzTrue", PzTrue,"PzTrue[Nparts]/D");
+  tree->Branch("EtaTrue", EtaTrue,"EtaTrue[Nparts]/D");
+  tree->Branch("PhiTrue", PhiTrue,"PhiTrue[Nparts]/D");
+  tree->Branch("ChargeTrue", ChargeTrue,"ChargeTrue[Nparts]/D");
+  tree->Branch("PDGTrue", PDGTrue,"PDGTrue[Nparts]/I");
+  tree->Branch("ESc", ESc,"ESc[Nparts]/D");
+  tree->Branch("EtSc", EtSc,"EtSc[Nparts]/D");
+  tree->Branch("EtaSc", EtaSc,"EtaSc[Nparts]/D");
+  tree->Branch("PhiSc", PhiSc,"PhiSc[Nparts]/D");
+  tree->Branch("EScSeed", EScSeed,"EScSeed[Nparts]/D");
+  tree->Branch("EtScSeed", EtScSeed,"EtScSeed[Nparts]/D");
+  tree->Branch("EtaScSeed", EtaScSeed,"EtaScSeed[Nparts]/D");
+  tree->Branch("PhiScSeed", PhiScSeed,"PhiScSeed[Nparts]/D");
+  tree->Branch("Charge", Charge,"Charge[Nparts]/D");
+  tree->Branch("PDG", PDG,"PDG[Nparts]/I");
+  tree->Branch("PTrackOut", PTrackOut,"PTrackOut[Nparts]/D");
+  tree->Branch("PtTrackOut", PtTrackOut,"PtTrackOut[Nparts]/D");
+  tree->Branch("PxTrackOut", PxTrackOut,"PxTrackOut[Nparts]/D");
+  tree->Branch("PyTrackOut", PyTrackOut,"PyTrackOut[Nparts]/D");
+  tree->Branch("PzTrackOut", PzTrackOut,"PzTrackOut[Nparts]/D");
+  tree->Branch("EtaTrackOut", EtaTrackOut,"EtaTrackOut[Nparts]/D");
+  tree->Branch("PhiTrackOut", PhiTrackOut,"PhiTrackOut[Nparts]/D");
+  tree->Branch("PTrackIn", PTrackIn,"PTrackIn[Nparts]/D");
+  tree->Branch("PtTrackIn", PtTrackIn,"PtTrackIn[Nparts]/D");
+  tree->Branch("PxTrackIn", PxTrackIn,"PxTrackIn[Nparts]/D");
+  tree->Branch("PyTrackIn", PyTrackIn,"PyTrackIn[Nparts]/D");
+  tree->Branch("PzTrackIn", PzTrackIn,"PzTrackIn[Nparts]/D");
+  tree->Branch("EtaTrackIn", EtaTrackIn,"EtaTrackIn[Nparts]/D");
+  tree->Branch("PhiTrackIn", PhiTrackIn,"PhiTrackIn[Nparts]/D");
+
+
+}
+
+void 
+ShashlikTupleDumper::endJob()
+{
+
+  tree->Write();
   histfile_->cd();
 
 }
 
-void
-ShashlikTupleDumper::endJob(){
-
-  histfile_->cd();
-
-}
-
-ShashlikAnalyzer::~ShashlikAnalyzer()
+ShashlikTupleDumper::~ShashlikTupleDumper()
 {
 
   // do anything here that needs to be done at desctruction time
@@ -91,89 +146,34 @@ ShashlikAnalyzer::~ShashlikAnalyzer()
 //=========================================================================
 
 void
-ShashlikAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   // get electrons
 
-  edm::Handle<GsfElectronCollection> gsfElectrons;
+  edm::Handle<reco::GsfElectronCollection> gsfElectrons;
   iEvent.getByLabel(electronCollection_,gsfElectrons);
   edm::LogInfo("")<<"\n\n =================> Treating event "<<iEvent.id()<<" Number of electrons "<<gsfElectrons.product()->size();
 
-  edm::Handle<GenParticleCollection> genParticles;
+  edm::Handle<reco::GenParticleCollection> genParticles;
   iEvent.getByLabel(mcTruthCollection_, genParticles);
 
 
   int mcNum=0, gamNum=0, eleNum=0;
-  bool matchingID, matchingMotherID;
 
   // association mc-reco
-  for (reco::GenParticleCollection::const_iterator mcIter=genParticles->begin(); mcIter != genParticles->end(); mcIter++ ) {
-
+  for (reco::GenParticleCollection::const_iterator mcIter=genParticles->begin();
+       mcIter != genParticles->end(); mcIter++ ) 
+  {
     // number of mc particles
     mcNum++;
 
-    // counts photons
+    // counts 
     if (mcIter->pdgId() == 22 ){ gamNum++; }
+    if (abs(mcIter->pdgId()) == 11 ){ eleNum++; }
 
-      // select requested matching gen particle
-      matchingID=false;
-      for (unsigned int i=0; i<matchingIDs_.size(); i++)
-       if ( mcIter->pdgId() == matchingIDs_[i] ) matchingID=true;
-
-      if (matchingID) {
-
-      // select requested mother matching gen particle
-      // always include single particle with no mother
-      const Candidate * mother = mcIter->mother();
-      matchingMotherID=false;
-      for (unsigned int i=0; i<matchingMotherIDs_.size(); i++)
-       if ((mother == 0) || ((mother != 0) &&  mother->pdgId() == matchingMotherIDs_[i]) ) matchingMotherID=true;
-
-      if (matchingMotherID) {
-
-      if (mcIter->pt()> maxPt_ || std::abs(mcIter->eta())> maxAbsEta_) continue;
-
-      // suppress the endcaps
-      //if (std::abs(mcIter->eta()) > 1.5) continue;
-      // select central z
-      //if ( std::abs(mcIter->production_vertex()->position().z())>50.) continue;
-
-      eleNum++;
-      // looking for the best matching gsf electron
-      bool okGsfFound = false;
-      double gsfOkRatio = 999999.;
-
-      // find best matched electron
-      reco::GsfElectron bestGsfElectron;
-      for (reco::GsfElectronCollection::const_iterator gsfIter=gsfElectrons->begin();
-       gsfIter!=gsfElectrons->end(); gsfIter++){
-
-        double dphi = gsfIter->phi()-mcIter->phi();
-        if (std::abs(dphi)>CLHEP::pi)
-         dphi = dphi < 0? (CLHEP::twopi) + dphi : dphi - CLHEP::twopi;
-    	double deltaR = sqrt(std::pow((gsfIter->eta()-mcIter->eta()),2) + std::pow(dphi,2));
-	if ( deltaR < deltaR_ ){
-	  if ( ( (mcIter->pdgId() == 11) && (gsfIter->charge() < 0.) ) ||
-	       ( (mcIter->pdgId() == -11) && (gsfIter->charge() > 0.) ) )
-	   {
-	    double tmpGsfRatio = gsfIter->p()/mcIter->p();
-	    if ( std::abs(tmpGsfRatio-1) < std::abs(gsfOkRatio-1) ) {
-	      gsfOkRatio = tmpGsfRatio;
-	      bestGsfElectron=*gsfIter;
-	      okGsfFound = true;
-	    }
-	  }
-	}
-      } // loop over rec ele to look for the best one
-
-      // analysis when the mc track is found
-     if (okGsfFound){
-
-      } // gsf electron found
-
-    } // mc particle found
-
-    }
+    // print 
+     
+    
 
   } // loop over mc particle
 
