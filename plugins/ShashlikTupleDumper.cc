@@ -160,20 +160,44 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   int mcNum=0, gamNum=0, eleNum=0;
 
+  // print 
+  std::cout << " MC info: id | pdgid | status | charge | mass | energy | pt | px | py | pz | " << std::endl;
+
   // association mc-reco
   for (reco::GenParticleCollection::const_iterator mcIter=genParticles->begin();
        mcIter != genParticles->end(); mcIter++ ) 
   {
-    // number of mc particles
-    mcNum++;
 
     // counts 
     if (mcIter->pdgId() == 22 ){ gamNum++; }
     if (abs(mcIter->pdgId()) == 11 ){ eleNum++; }
 
     // print 
-     
-    
+    double charge = mcIter->charge();
+    double px = mcIter->px();
+    double py = mcIter->py();
+    double pz = mcIter->pz();
+    double pt = mcIter->pt();
+    double energy = mcIter->energy();
+    double mass =  mcIter->mass();
+    double pdgid = mcIter->pdgId();
+    double status = mcIter->status();
+    std::cout << "   " << mcNum << " | "
+         << pdgid << " | "
+         << status << " | "
+         << charge << " | "
+         << mass << " | "
+         << energy << " | "
+         << pt << " | "
+         << px << " | "
+         << py << " | "
+         << pz << " | "
+         << std::endl;
+   
+
+ 
+    // number of mc particles
+    mcNum++;
 
   } // loop over mc particle
 
