@@ -53,7 +53,6 @@ ShashlikTupleDumper::ShashlikTupleDumper(const edm::ParameterSet& conf)
   electronCollection_=conf.getParameter<edm::InputTag>("electronCollection");
   mcTruthCollection_ = conf.getParameter<edm::InputTag>("mcTruthCollection");
   deltaR_ = conf.getParameter<double>("DeltaR");
-  matchingIDs_ = conf.getParameter<std::vector<int> >("MatchingID");
   matchingMotherIDs_ = conf.getParameter<std::vector<int> >("MatchingMotherID");
 
  }
@@ -93,6 +92,7 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("PhiTrue", PhiTrue,"PhiTrue[Nparts]/D");
   tree->Branch("ChargeTrue", ChargeTrue,"ChargeTrue[Nparts]/D");
   tree->Branch("PDGTrue", PDGTrue,"PDGTrue[Nparts]/I");
+  tree->Branch("FoundGsf", FoundGsf,"FoundGsf[Nparts]/I");
   tree->Branch("ESc", ESc,"ESc[Nparts]/D");
   tree->Branch("EtSc", EtSc,"EtSc[Nparts]/D");
   tree->Branch("EtaSc", EtaSc,"EtaSc[Nparts]/D");
@@ -101,6 +101,15 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("EtScSeed", EtScSeed,"EtScSeed[Nparts]/D");
   tree->Branch("EtaScSeed", EtaScSeed,"EtaScSeed[Nparts]/D");
   tree->Branch("PhiScSeed", PhiScSeed,"PhiScSeed[Nparts]/D");
+  tree->Branch("E", E,"E[Nparts]/D");
+  tree->Branch("Pt", Pt,"Pt[Nparts]/D");
+  tree->Branch("Px", Px,"Px[Nparts]/D");
+  tree->Branch("Py", Py,"Py[Nparts]/D");
+  tree->Branch("Pz", Pz,"Pz[Nparts]/D");
+  tree->Branch("Eta", Eta,"Eta[Nparts]/D");
+  tree->Branch("Phi", Phi,"Phi[Nparts]/D");
+  tree->Branch("isEB", isEB,"isEB[Nparts]/O");
+  tree->Branch("isEE", isEE,"isEE[Nparts]/O");
   tree->Branch("Charge", Charge,"Charge[Nparts]/D");
   tree->Branch("PDG", PDG,"PDG[Nparts]/I");
   tree->Branch("PTrackOut", PTrackOut,"PTrackOut[Nparts]/D");
@@ -158,50 +167,218 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   iEvent.getByLabel(mcTruthCollection_, genParticles);
 
 
-  int mcNum=0, gamNum=0, eleNum=0;
+  int mcNum=0;
+  bool matchingMotherID;
 
   // print 
-  std::cout << " MC info: id | pdgid | status | charge | mass | energy | pt | px | py | pz | " << std::endl;
+  //std::cout << " MC info: id | pdgid | status | charge | mass | energy | pt | px | py | pz | " << std::endl;
 
   // association mc-reco
   for (reco::GenParticleCollection::const_iterator mcIter=genParticles->begin();
        mcIter != genParticles->end(); mcIter++ ) 
   {
-
     // counts 
     if (mcIter->pdgId() == 22 ){ gamNum++; }
     if (abs(mcIter->pdgId()) == 11 ){ eleNum++; }
 
     // print 
-    double charge = mcIter->charge();
-    double px = mcIter->px();
-    double py = mcIter->py();
-    double pz = mcIter->pz();
-    double pt = mcIter->pt();
-    double energy = mcIter->energy();
-    double mass =  mcIter->mass();
-    double pdgid = mcIter->pdgId();
-    double status = mcIter->status();
-    std::cout << "   " << mcNum << " | "
-         << pdgid << " | "
-         << status << " | "
-         << charge << " | "
-         << mass << " | "
-         << energy << " | "
-         << pt << " | "
-         << px << " | "
-         << py << " | "
-         << pz << " | "
-         << std::endl;
-   
+    double tcharge = mcIter->charge();
+    double tpx = mcIter->px();
+    double tpy = mcIter->py();
+    double tpz = mcIter->pz();
+    double tpt = mcIter->pt();
+    double tp = mcIter->p();
+    double teta = mcIter->eta();
+    double tphi = mcIter->phi();
+    double tenergy = mcIter->energy();
+    double tmass =  mcIter->mass();
+    int tpdgid = mcIter->pdgId();
+    int tstatus = mcIter->status();
+    double tvx = mcIter->vx();
+    double tvy = mcIter->vy();
+    double tvz = mcIter->vz();
+    //std::cout << "   " << mcNum << " | "
+    //     << tpdgid << " | "
+    //     << tstatus << " | "
+    //     << tcharge << " | "
+    //     << tmass << " | "
+    //     << tenergy << " | "
+    //     << tpt << " | "
+    //     << tpx << " | "
+    //     << tpy << " | "
+    //     << tpz << " | "
+    //     << std::endl;
 
+    // only select electrons
+    if (abs(pdgid)!=11) continue;
+
+    // select requested mother matching gen particle
+    // always include single particle with no mother
+    const reco::Candidate * mother = mcIter->mother();
+    matchingMotherID=false;
+    for (unsigned int i=0; i<matchingMotherIDs_.size(); i++)
+    {   
+      if ((mother == 0) || ((mother != 0) &&  mother->pdgId() == matchingMotherIDs_[i]) ) 
+      {  matchingMotherID=true; }
+    }
+
+    // continue if no match
+    if (!matchingMotherID) continue; 
+
+    // set MC truth info
+    ETrue[mcNum] = tenergy;
+    PtTrue[mcNum] = tpt; 
+    PxTrue[mcNum] = tpx;
+    PyTrue[mcNum] = tpy;
+    PzTrue[mcNum] = tpz;
+    EtaTrue[mcNum] = teta;
+    PhiTrue[mcNum] = tphi;
+    ChargeTrue[mcNum] = tcharge;
+    PDGTrue[mcNum] = tpdgid;
+
+    // looking for the best matching gsf electron
+    bool okGsfFound = false;
+    double gsfOkRatio = 999999.;
+
+    // find best matched electron
+    reco::GsfElectron bestGsfElectron;
+    for (reco::GsfElectronCollection::const_iterator gsfIter=gsfElectrons->begin();
+         gsfIter!=gsfElectrons->end(); gsfIter++)
+    {
+      double dphi = gsfIter->phi()-mcIter->phi();
+      if (std::abs(dphi)>CLHEP::pi) 
+      {  dphi = dphi < 0? (CLHEP::twopi) + dphi : dphi - CLHEP::twopi; }
+
+      double deltaR = sqrt(std::pow((gsfIter->eta()-mcIter->eta()),2) + std::pow(dphi,2));
+      if ( deltaR < deltaR_ )
+      {
+        if ( ( (mcIter->pdgId() == 11) && (gsfIter->charge() < 0.) ) ||
+             ( (mcIter->pdgId() == -11) && (gsfIter->charge() > 0.) ) )
+        {
+          double tmpGsfRatio = gsfIter->p()/mcIter->p();
+          if ( std::abs(tmpGsfRatio-1) < std::abs(gsfOkRatio-1) ) 
+          {
+            gsfOkRatio = tmpGsfRatio;
+            bestGsfElectron=*gsfIter;
+            okGsfFound = true;
+          }
+        }
+      }
+    } // loop over rec ele to look for the best one    
+   
+    // only book truth if gsf is not found
+    if (!okGsfFound) 
+    {
+      FoundGsf[mcNum]=-1;
+      VtxX[mcNum] = -100;
+      VtxY[mcNum] = -100;
+      VtxZ[mcNum] = -100;
+      ESc[mcNum] = -100;
+      EtSc[mcNum] = -100;
+      EtaSc[mcNum] = -100;
+      PhiSc[mcNum] = -100;
+      EScSeed[mcNum] = -100;
+      EtScSeed[mcNum] = -100;
+      EtaScSeed[mcNum] = -100;
+      PhiScSeed[mcNum] = -100;
+      E[mcNum] = -100;
+      Pt[mcNum] = -100;
+      Px[mcNum] = -100;
+      Py[mcNum] = -100;
+      Pz[mcNum] = -100;
+      Eta[mcNum] = -100;
+      Phi[mcNum] = -100;
+      Charge[mcNum] = -100;
+      PDG[mcNum] = -100;
+      isEB[mcNum] = false;
+      isEE[mcNum] = false;
+      PTrackOut[mcNum] = -100;
+      PtTrackOut[mcNum] = -100;
+      PxTrackOut[mcNum] = -100;
+      PyTrackOut[mcNum] = -100;
+      PzTrackOut[mcNum] = -100;
+      EtaTrackOut[mcNum] = -100;
+      PhiTrackOut[mcNum] = -100;
+      PTrackIn[mcNum] = -100;
+      PtTrackIn[mcNum] = -100;
+      PxTrackIn[mcNum] = -100;
+      PyTrackIn[mcNum] = -100;
+      PzTrackIn[mcNum] = -100;
+      EtaTrackIn[mcNum] = -100;
+      PhiTrackIn[mcNum] = -100;     
+      // skip the rests
+      continue;
+    }
  
+    // now fill the gsf electron info
+    ESc[mcNum] = bestGsfElectron.superCluster()->energy();
+    EtSc[mcNum] = bestGsfElectron.superCluster()->energy()/cosh(bestGsfElectron.superCluster()->eta());
+    EtaSc[mcNum] = bestGsfElectron.superCluster()->eta();
+    PhiSc[mcNum] = bestGsfElectron.superCluster()->phi();
+
+    //
+    E[mcNum] = bestGsfElectron.energy();
+    Pt[mcNum] = bestGsfElectron.pt();
+    Px[mcNum] = bestGsfElectron.px();
+    Py[mcNum] = bestGsfElectron.py();
+    Pz[mcNum] = bestGsfElectron.pz();
+    Eta[mcNum] = bestGsfElectron.eta();
+    Phi[mcNum] = bestGsfElectron.phi();
+    isEB[mcNum] = bestGsfElectron.isEB();
+    isEE[mcNum] = bestGsfElectron.isEE(); 
+    Charge[mcNum] = bestGsfElectron.charge();
+    PDG[mcNum] = bestGsfElectron.pdgId();
+ 
+    reco::GsfTrack* gsfTrack = bestGsfElectron.gsfTrack();
+    if (!gsfTrack) 
+    {
+      PTrackOut[mcNum] = -100;
+      PtTrackOut[mcNum] = -100;
+      PxTrackOut[mcNum] = -100;
+      PyTrackOut[mcNum] = -100;
+      PzTrackOut[mcNum] = -100;
+      EtaTrackOut[mcNum] = -100;
+      PhiTrackOut[mcNum] = -100;
+      PTrackIn[mcNum] = -100;
+      PtTrackIn[mcNum] = -100;
+      PxTrackIn[mcNum] = -100;
+      PyTrackIn[mcNum] = -100;
+      PzTrackIn[mcNum] = -100;
+      EtaTrackIn[mcNum] = -100;
+      PhiTrackIn[mcNum] = -100;
+      EScSeed[mcNum] = -100;
+      EtScSeed[mcNum] = -100;
+      EtaScSeed[mcNum] = -100;
+      PhiScSeed[mcNum] = -100;
+      continue;
+    }
+
+   
+    PTrackOut[mcNum] = gsfTrack->outerMomentum().R();
+    PtTrackOut[mcNum] = gsfTrack->outerMomentum().Rho();
+    PxTrackOut[mcNum] = gsfTrack->outerMomentum().X();
+    PyTrackOut[mcNum] = gsfTrack->outerMomentum().Y();
+    PzTrackOut[mcNum] = gsfTrack->outerMomentum().Z();
+    EtaTrackOut[mcNum] = gsfTrack->outerMomentum().eta();
+    PhiTrackOut[mcNum] = gsfTrack->outerMomentum().phi();
+    PTrackIn[mcNum] = gsfTrack->innerMomentum().R();
+    PtTrackIn[mcNum] = gsfTrack->innerMomentum().Rho();
+    PxTrackIn[mcNum] = gsfTrack->innerMomentum().X();
+    PyTrackIn[mcNum] = gsfTrack->innerMomentum().Y();
+    PzTrackIn[mcNum] = gsfTrack->innerMomentum().Z();
+    EtaTrackIn[mcNum] = gsfTrack->innerMomentum().eta();
+    PhiTrackIn[mcNum] = gsfTrack->innerMomentum().phi();
+
+
     // number of mc particles
     mcNum++;
 
   } // loop over mc particle
 
 
+  Nparts = mcNum;
+  tree->Fill();
+  
 }
 
 

@@ -53,12 +53,15 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   double ETrue[100], PtTrue[100], PxTrue[100], PyTrue[100], PzTrue[100];
   double EtaTrue[100], PhiTrue[100], ChargeTrue[100];
   int PDGTrue[100];
+  int FoundGsf[100];
+  
 
   double ESc[100], EtSc[100], EtaSc[100], PhiSc[100];
   double EScSeed[100], EtScSeed[100], EtaScSeed[100], PhiScSeed[100];
 
-  double Charge[100];
+  double E[100], Pt[100], Px[100], Py[100], Pz[100], Eta[100], Phi[100], Charge[100];
   int PDG[100];
+  bool isEB[100], isEE[100];
 
   double PTrackOut[100], PtTrackOut[100], PxTrackOut[100], PyTrackOut[100], PzTrackOut[100];
   double EtaTrackOut[100], PhiTrackOut[100];
