@@ -12,8 +12,10 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1000)
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
     fileNames = cms.untracked.vstring(
-#       'root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt35Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/1E4EBCA3-5C2D-E411-AAFF-0025905A60E4.root',
-       'root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt35Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/6226BAA7-5C2D-E411-87C9-0025905B85AA.root'
+       'root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt35Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/1E4EBCA3-5C2D-E411-AAFF-0025905A60E4.root',
+       'root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt35Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/6226BAA7-5C2D-E411-87C9-0025905B85AA.root',
+       'root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt10Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/A2A2E5C4-522D-E411-8702-002618943896.root',
+       'root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt10Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/D4D7E7C4-522D-E411-8639-002618943896.root'
     )
 )
 

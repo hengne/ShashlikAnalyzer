@@ -134,8 +134,8 @@ void
 ShashlikTupleDumper::endJob()
 {
 
-  tree->Write();
   histfile_->cd();
+  tree->Write();
 
 }
 
@@ -177,9 +177,6 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   for (reco::GenParticleCollection::const_iterator mcIter=genParticles->begin();
        mcIter != genParticles->end(); mcIter++ ) 
   {
-    // counts 
-    if (mcIter->pdgId() == 22 ){ gamNum++; }
-    if (abs(mcIter->pdgId()) == 11 ){ eleNum++; }
 
     // print 
     double tcharge = mcIter->charge();
@@ -187,16 +184,16 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     double tpy = mcIter->py();
     double tpz = mcIter->pz();
     double tpt = mcIter->pt();
-    double tp = mcIter->p();
+    //double tp = mcIter->p();
     double teta = mcIter->eta();
     double tphi = mcIter->phi();
     double tenergy = mcIter->energy();
-    double tmass =  mcIter->mass();
+    //double tmass =  mcIter->mass();
     int tpdgid = mcIter->pdgId();
-    int tstatus = mcIter->status();
-    double tvx = mcIter->vx();
-    double tvy = mcIter->vy();
-    double tvz = mcIter->vz();
+    //int tstatus = mcIter->status();
+    //double tvx = mcIter->vx();
+    //double tvy = mcIter->vy();
+    //double tvz = mcIter->vz();
     //std::cout << "   " << mcNum << " | "
     //     << tpdgid << " | "
     //     << tstatus << " | "
@@ -210,12 +207,13 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     //     << std::endl;
 
     // only select electrons
-    if (abs(pdgid)!=11) continue;
+    if (abs(tpdgid)!=11) continue;
 
     // select requested mother matching gen particle
     // always include single particle with no mother
     const reco::Candidate * mother = mcIter->mother();
-    matchingMotherID=false;
+    //matchingMotherID=false;
+    matchingMotherID=true;
     for (unsigned int i=0; i<matchingMotherIDs_.size(); i++)
     {   
       if ((mother == 0) || ((mother != 0) &&  mother->pdgId() == matchingMotherIDs_[i]) ) 
@@ -269,10 +267,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     // only book truth if gsf is not found
     if (!okGsfFound) 
     {
-      FoundGsf[mcNum]=-1;
-      VtxX[mcNum] = -100;
-      VtxY[mcNum] = -100;
-      VtxZ[mcNum] = -100;
+      FoundGsf[mcNum] = 0;
       ESc[mcNum] = -100;
       EtSc[mcNum] = -100;
       EtaSc[mcNum] = -100;
@@ -307,9 +302,13 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       EtaTrackIn[mcNum] = -100;
       PhiTrackIn[mcNum] = -100;     
       // skip the rests
+      mcNum++;
       continue;
     }
- 
+
+    // otherwise found gsf
+    FoundGsf[mcNum] = 1;
+   
     // now fill the gsf electron info
     ESc[mcNum] = bestGsfElectron.superCluster()->energy();
     EtSc[mcNum] = bestGsfElectron.superCluster()->energy()/cosh(bestGsfElectron.superCluster()->eta());
@@ -326,10 +325,10 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     Phi[mcNum] = bestGsfElectron.phi();
     isEB[mcNum] = bestGsfElectron.isEB();
     isEE[mcNum] = bestGsfElectron.isEE(); 
-    Charge[mcNum] = bestGsfElectron.charge();
+    Charge[mcNum] = (double)bestGsfElectron.charge();
     PDG[mcNum] = bestGsfElectron.pdgId();
  
-    reco::GsfTrack* gsfTrack = bestGsfElectron.gsfTrack();
+    reco::GsfTrackRef gsfTrack = bestGsfElectron.gsfTrack();
     if (!gsfTrack) 
     {
       PTrackOut[mcNum] = -100;
@@ -350,6 +349,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       EtScSeed[mcNum] = -100;
       EtaScSeed[mcNum] = -100;
       PhiScSeed[mcNum] = -100;
+      mcNum++;
       continue;
     }
 
