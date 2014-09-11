@@ -16,7 +16,7 @@ Install:
 
 > git clone https://github.com/hengne/ShashlikAnalyzer.git
 
-> sram b -j8
+> scram b -j8
 
 Note: change the above release version as needed.
 
