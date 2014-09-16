@@ -1,5 +1,8 @@
 {
-  char* tag = "ShashlikTupleDumper_RelValSingleElectronPt35Extended_DES23_62_V1_UPG2023SHNoTaper-v1";
+  char* tag = 
+  //   "ShashlikTupleDumper_RelValSingleElectronPt35Extended_DES23_62_V1_UPG2023SHNoTaper-v1"
+     "ShashlikTupleDumper_RelValZEE_14TeV_GEN-SIM-RECO_DES23_62_V1_UPG2023SHNoTaper-v1"
+  ;
 
   char name[1000];
   sprintf(name, "%s.root", tag);
@@ -115,8 +118,8 @@
   lg->Write();
 
   // EtaTrue
-  h1 = new TH1D("h1", "h1", 50, -5, 5);
-  h2 = new TH1D("h2", "h2", 50, -5, 5);
+  h1 = new TH1D("h1", "h1", 100, -5, 5);
+  h2 = new TH1D("h2", "h2", 100, -5, 5);
   h1->Sumw2();
   h2->Sumw2();
   tree->Draw("EtaTrue>>h1", "isEB");
@@ -230,8 +233,8 @@
   lg->Write();
   
   // eta sc
-  h1 = new TH1D("h1", "h1", 50, -5, 5);
-  h2 = new TH1D("h2", "h2", 50, -5, 5);
+  h1 = new TH1D("h1", "h1", 100, -5, 5);
+  h2 = new TH1D("h2", "h2", 100, -5, 5);
   h1->Sumw2();
   h2->Sumw2();
   tree->Draw("EtaSc>>h1", "isEB&&FoundGsf");
@@ -346,8 +349,8 @@
   lg->Write();
 
   // EtaTrackIn
-  h1 = new TH1D("h1", "h1", 50, -5, 5);
-  h2 = new TH1D("h2", "h2", 50, -5, 5);
+  h1 = new TH1D("h1", "h1", 100, -5, 5);
+  h2 = new TH1D("h2", "h2", 100, -5, 5);
   h1->Sumw2();
   h2->Sumw2();
   tree->Draw("EtaTrackIn>>h1", "isEB&&FoundGsf");
@@ -462,8 +465,8 @@
   lg->Write();
 
   // EtaTrackOut
-  h1 = new TH1D("h1", "h1", 50, -5, 5);
-  h2 = new TH1D("h2", "h2", 50, -5, 5);
+  h1 = new TH1D("h1", "h1", 100, -5, 5);
+  h2 = new TH1D("h2", "h2", 100, -5, 5);
   h1->Sumw2();
   h2->Sumw2();
   tree->Draw("EtaTrackOut>>h1", "isEB&&FoundGsf");
@@ -634,8 +637,8 @@
 
 
   // ESc/ETrue vs EtaTrue
-  h2d1 = new TH2D("h2d1", "h2d1", 30, -5, 5, 300,0,3);
-  h2d2 = new TH2D("h2d2", "h2d2", 30, -5, 5, 300,0,3);
+  h2d1 = new TH2D("h2d1", "h2d1", 100, -5, 5, 300,0,3);
+  h2d2 = new TH2D("h2d2", "h2d2", 100, -5, 5, 300,0,3);
   h2d1->Sumw2();
   h2d2->Sumw2();
   tree->Draw("ESc/ETrue:EtaTrue>>h2d1", "isEB&&FoundGsf");
@@ -667,10 +670,10 @@
   h2d2->Write();
 
   // Mean(ESc/Etrue) vs. EtaTrue and  RMS(ESc/Etrue) vs. EtaTrue
-  h1 = new TH1D("h1", "h1", 30, -5, 5);
-  h2 = new TH1D("h2", "h2", 30, -5, 5);
-  h3 = new TH1D("h3", "h3", 30, -5, 5);
-  h4 = new TH1D("h4", "h4", 30, -5, 5);
+  h1 = new TH1D("h1", "h1", 100, -5, 5);
+  h2 = new TH1D("h2", "h2", 100, -5, 5);
+  h3 = new TH1D("h3", "h3", 100, -5, 5);
+  h4 = new TH1D("h4", "h4", 100, -5, 5);
   h1->Sumw2();
   h2->Sumw2();
   h3->Sumw2();
@@ -900,8 +903,8 @@
 
 
   // PTrackIn/ETrue vs EtaTrue
-  h2d1 = new TH2D("h2d1", "h2d1", 30, -5, 5, 300,0,3);
-  h2d2 = new TH2D("h2d2", "h2d2", 30, -5, 5, 300,0,3);
+  h2d1 = new TH2D("h2d1", "h2d1", 100, -5, 5, 300,0,3);
+  h2d2 = new TH2D("h2d2", "h2d2", 100, -5, 5, 300,0,3);
   h2d1->Sumw2();
   h2d2->Sumw2();
   tree->Draw("PTrackIn/ETrue:EtaTrue>>h2d1", "isEB&&FoundGsf");
@@ -933,10 +936,10 @@
   h2d2->Write();
 
   // Mean(PTrackIn/Etrue) vs. EtaTrue and  RMS(PTrackIn/Etrue) vs. EtaTrue
-  h1 = new TH1D("h1", "h1", 30, -5, 5);
-  h2 = new TH1D("h2", "h2", 30, -5, 5);
-  h3 = new TH1D("h3", "h3", 30, -5, 5);
-  h4 = new TH1D("h4", "h4", 30, -5, 5);
+  h1 = new TH1D("h1", "h1", 100, -5, 5);
+  h2 = new TH1D("h2", "h2", 100, -5, 5);
+  h3 = new TH1D("h3", "h3", 100, -5, 5);
+  h4 = new TH1D("h4", "h4", 100, -5, 5);
   h1->Sumw2();
   h2->Sumw2();
   h3->Sumw2();
