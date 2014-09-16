@@ -3,3 +3,36 @@ root://cms-xrd-global.cern.ch//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElect
 root://cms-xrd-global.cern.ch//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt35Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/6226BAA7-5C2D-E411-87C9-0025905B85AA.root
 root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt35Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/1E4EBCA3-5C2D-E411-AAFF-0025905A60E4.root
 root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValSingleElectronPt35Extended/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/6226BAA7-5C2D-E411-87C9-0025905B85AA.root
+
+
+Zee:
+root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/7466ABF1-652D-E411-A9CA-0025905964A6.root
+root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/92D93EF3-672D-E411-BBBB-002618943900.root
+root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/98FA28CD-592D-E411-BD10-0025905AA9CC.root
+root://eoscms//store/relval/CMSSW_6_2_0_SLHC17/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/DC872C06-652D-E411-AC65-00248C0BE005.root
+
+
+File:
+/store/relval/CMSSW_6_2_0_SLHC17/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/7466ABF1-652D-E411-A9CA-0025905964A6.root
+File size: 3.1GB, File type: EDM, Number of events: 2300, Site:
+T0_CH_CERN_Export, T1_US_FNAL_Disk, T2_CH_CERN, T0_CH_CERN_MSS
+Dataset, Sites, Runs, Parents, Children, Lumis, Download Sources: phedexdbs3
+show
+File:
+/store/relval/CMSSW_6_2_0_SLHC17/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/92D93EF3-672D-E411-BBBB-002618943900.root
+File size: 1.3GB, File type: EDM, Number of events: 1000, Site: T2_CH_CERN,
+T0_CH_CERN_Export, T1_US_FNAL_Disk, T0_CH_CERN_MSS
+Dataset, Sites, Runs, Parents, Children, Lumis, Download Sources: phedexdbs3
+show
+File:
+/store/relval/CMSSW_6_2_0_SLHC17/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/98FA28CD-592D-E411-BD10-0025905AA9CC.root
+File size: 2.4GB, File type: EDM, Number of events: 1800, Site:
+T0_CH_CERN_Export, T1_US_FNAL_Disk, T2_CH_CERN, T0_CH_CERN_MSS
+Dataset, Sites, Runs, Parents, Children, Lumis, Download Sources: phedexdbs3
+show
+File:
+/store/relval/CMSSW_6_2_0_SLHC17/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/DC872C06-652D-E411-AC65-00248C0BE005.root
+File size: 4.0GB, File type: EDM, Number of events: 3000, Site:
+T1_US_FNAL_Disk, T2_CH_CERN, T0_CH_CERN_Export, T0_CH_CERN_MSS
+Dataset, Sites, Runs, Parents, Children, Lumis, Download Sources: phedexdbs3
+show 
