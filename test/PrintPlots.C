@@ -1,7 +1,7 @@
 {
   char* tag = 
-  //   "ShashlikTupleDumper_RelValSingleElectronPt35Extended_DES23_62_V1_UPG2023SHNoTaper-v1"
-     "ShashlikTupleDumper_RelValZEE_14TeV_GEN-SIM-RECO_DES23_62_V1_UPG2023SHNoTaper-v1"
+     "ShashlikTupleDumper_RelValSingleElectronPt35Extended_DES23_62_V1_UPG2023SHNoTaper-v1"
+  //   "ShashlikTupleDumper_RelValZEE_14TeV_GEN-SIM-RECO_DES23_62_V1_UPG2023SHNoTaper-v1"
   ;
 
   char name[1000];
@@ -45,8 +45,8 @@
   h2 = new TH1D("h2", "h2", 100, 0, 100);
   h1->Sumw2();
   h2->Sumw2();
-  tree->Draw("PtTrue>>h1", "isEB");
-  tree->Draw("PtTrue>>h2", "isEE");
+  tree->Draw("PtTrue>>h1", "abs(EtaTrue)<1.5");
+  tree->Draw("PtTrue>>h2", "abs(EtaTrue)>1.5");
   h1->SetName("ElePtTrueEB");
   h2->SetName("ElePtTrueEE");
   h1->SetTitle("Electron True Pt");
@@ -84,8 +84,8 @@
   h2 = new TH1D("h2", "h2", 100, 0, 300);
   h1->Sumw2();
   h2->Sumw2();
-  tree->Draw("ETrue>>h1", "isEB");
-  tree->Draw("ETrue>>h2", "isEE");
+  tree->Draw("ETrue>>h1", "abs(EtaTrue)<1.5");
+  tree->Draw("ETrue>>h2", "abs(EtaTrue)>1.5");
   h1->SetName("EleETrueEB");
   h2->SetName("EleETrueEE");
   h1->SetTitle("Electron True Energy");
@@ -122,8 +122,8 @@
   h2 = new TH1D("h2", "h2", 100, -5, 5);
   h1->Sumw2();
   h2->Sumw2();
-  tree->Draw("EtaTrue>>h1", "isEB");
-  tree->Draw("EtaTrue>>h2", "isEE");
+  tree->Draw("EtaTrue>>h1", "abs(EtaTrue)<1.5");
+  tree->Draw("EtaTrue>>h2", "abs(EtaTrue)>1.5");
   h1->SetName("EleEtaTrueEB");
   h2->SetName("EleEtaTrueEE");
   h1->SetTitle("Electron True Eta");
@@ -154,6 +154,55 @@
   h1->Write();
   h2->Write();
   lg->Write();
+
+
+  // Eff vs Eta
+  h1 = new TH1D("h1", "h1", 100, -5, 5);
+  h2 = new TH1D("h2", "h2", 100, -5, 5);
+  h3 = new TH1D("h3", "h3", 100, -5, 5);
+  h4 = new TH1D("h4", "h4", 100, -5, 5);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  tree->Draw("EtaTrue>>h1", "abs(EtaTrue)<1.5");
+  tree->Draw("EtaTrue>>h2", "abs(EtaTrue)>1.5");
+  tree->Draw("EtaTrue>>h3", "abs(EtaTrue)<1.5&&FoundGsf");
+  tree->Draw("EtaTrue>>h4", "abs(EtaTrue)>1.5&&FoundGsf");
+  h3->Divide(h1);
+  h4->Divide(h2);
+  h3->SetName("EleEffEtaTrueEB");
+  h4->SetName("EleEffEtaTrueEE");
+  h3->SetTitle("Electron Gsf Finding Efficiency vs True Eta");
+  h4->SetTitle("Electron Gsf Finding Efficiency vs True Eta");
+  h3->SetMarkerStyle(20);
+  h3->SetMarkerColor(2);
+  h3->SetLineColor(2);
+  h4->SetMarkerStyle(20);
+  h4->SetMarkerColor(4);
+  h4->SetLineColor(4);
+  h3->GetXaxis()->SetTitle("Eta True");
+  h4->GetXaxis()->SetTitle("Eta True");
+  //h3->GetYaxis()->SetRangeUser(0.9, 1.1);
+  //h4->GetYaxis()->SetRangeUser(0.9, 1.1);
+
+  lg = new TLegend(0.8,0.8,0.95,0.95);
+  lg->SetName("lg_EffEtaTrue");
+  lg->AddEntry(h3, "EB", "pl");
+  lg->AddEntry(h4, "EE", "pl");
+
+  plots.Clear();
+  h3->Draw();
+  h4->Draw("same");
+  lg->Draw();
+  sprintf(name, "plots_%s.ps", tag);
+  plots.Print(name);
+  plots.Clear();
+
+  fileout->cd();
+  h3->Write();
+  h4->Write();
+  lg->Write();  
 
   // Et sc 
   h1 = new TH1D("h1", "h1", 100, 0, 100);
