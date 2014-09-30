@@ -32,7 +32,8 @@ process.source = cms.Source("PoolSource",
 process.load("ShashlikAnalyzer.ShashlikAnalyzer.ShashlikTupleDumper_cfi")
 process.ShashlikAna.outputFile = cms.string(
 #"ShashlikTupleDumper_RelValSingleElectronPt35Extended_DES23_62_V1_UPG2023SHNoTaper-v1.root"
- "ShashlikTupleDumper_RelValZEE_14TeV_GEN-SIM-RECO_DES23_62_V1_UPG2023SHNoTaper-v1.root"
+# "ShashlikTupleDumper_RelValZEE_14TeV_GEN-SIM-RECO_DES23_62_V1_UPG2023SHNoTaper-v1.root"
+ "output.root"
 )
 
 
