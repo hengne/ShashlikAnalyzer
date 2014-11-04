@@ -45,6 +45,7 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   
   // variables for the tree
   ULong64_t RunNum, EvtNum, LumNum;
+  int NPV;
   double VtxXTrue, VtxYTrue, VtxZTrue;
   double VtxX, VtxY, VtxZ;
   
@@ -53,6 +54,7 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   double ETrue[100], PtTrue[100], PxTrue[100], PyTrue[100], PzTrue[100];
   double EtaTrue[100], PhiTrue[100], ChargeTrue[100];
   int PDGTrue[100];
+  int MomPDGTrue[100];
   int FoundGsf[100];
   
 

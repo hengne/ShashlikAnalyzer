@@ -34,6 +34,7 @@
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
+#include"SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
 #include "CLHEP/Units/GlobalPhysicalConstants.h"
 #include <iostream>
@@ -74,6 +75,7 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("RunNum", &RunNum,"RunNum/l");
   tree->Branch("EvtNum", &EvtNum,"EvtNum/l");
   tree->Branch("LumNum", &LumNum,"LumNum/l");
+  tree->Branch("NPV", &NPV,"NPV/I");
   tree->Branch("VtxXTrue", &VtxXTrue,"VtxXTrue/D");
   tree->Branch("VtxYTrue", &VtxYTrue,"VtxYTrue/D");
   tree->Branch("VtxZTrue", &VtxZTrue,"VtxZTrue/D");
@@ -92,6 +94,7 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("PhiTrue", PhiTrue,"PhiTrue[Nparts]/D");
   tree->Branch("ChargeTrue", ChargeTrue,"ChargeTrue[Nparts]/D");
   tree->Branch("PDGTrue", PDGTrue,"PDGTrue[Nparts]/I");
+  tree->Branch("MomPDGTrue", MomPDGTrue,"MomPDGTrue[Nparts]/I");
   tree->Branch("FoundGsf", FoundGsf,"FoundGsf[Nparts]/I");
   tree->Branch("ESc", ESc,"ESc[Nparts]/D");
   tree->Branch("EtSc", EtSc,"EtSc[Nparts]/D");
@@ -166,6 +169,19 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::Handle<reco::GenParticleCollection> genParticles;
   iEvent.getByLabel(mcTruthCollection_, genParticles);
 
+  edm::Handle<std::vector< PileupSummaryInfo > >  PupInfo;
+  iEvent.getByLabel(edm::InputTag("addPileupInfo"), PupInfo);
+  std::vector<PileupSummaryInfo>::const_iterator PVI;
+  NPV = -1;
+  for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI) 
+  {
+    int BX = PVI->getBunchCrossing();
+    if(BX == 0)
+    {
+      NPV = PVI->getTrueNumInteractions();
+      continue;
+    }
+  }
 
   int mcNum=0;
   bool matchingMotherID;
@@ -190,7 +206,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     double tenergy = mcIter->energy();
     //double tmass =  mcIter->mass();
     int tpdgid = mcIter->pdgId();
-    //int tstatus = mcIter->status();
+    int tstatus = mcIter->status();
     //double tvx = mcIter->vx();
     //double tvy = mcIter->vy();
     //double tvz = mcIter->vz();
@@ -205,6 +221,10 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     //     << tpy << " | "
     //     << tpz << " | "
     //     << std::endl;
+
+    
+    // only use gen status ==1
+    if (tstatus!=1) continue;
 
     // only select electrons
     if (abs(tpdgid)!=11) continue;
@@ -233,6 +253,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     PhiTrue[mcNum] = tphi;
     ChargeTrue[mcNum] = tcharge;
     PDGTrue[mcNum] = tpdgid;
+    MomPDGTrue[mcNum] = mother->pdgId();
 
     // looking for the best matching gsf electron
     bool okGsfFound = false;
