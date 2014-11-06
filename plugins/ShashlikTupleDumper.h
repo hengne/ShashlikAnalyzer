@@ -37,6 +37,7 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   virtual void analyze(const edm::Event& e, const edm::EventSetup& c);
 
   void bookTree();
+  void clearTreeBranchVectors();
 
  private:
 
@@ -51,29 +52,33 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   
   int Nparts, Nelecs, Nphots;
 
-  double ETrue[100], PtTrue[100], PxTrue[100], PyTrue[100], PzTrue[100];
-  double EtaTrue[100], PhiTrue[100], ChargeTrue[100];
-  int PDGTrue[100];
-  int MomPDGTrue[100];
-  int FoundGsf[100];
+  std::vector<double> ETrue, PtTrue, PxTrue, PyTrue, PzTrue;
+  std::vector<double> EtaTrue, PhiTrue, ChargeTrue;
+  std::vector<int> PDGTrue;
+  std::vector<int> MomPDGTrue;
+  std::vector<int> FoundGsf;
   
 
-  double ESc[100], EtSc[100], EtaSc[100], PhiSc[100];
-  double EScSeed[100], EtScSeed[100], EtaScSeed[100], PhiScSeed[100];
+  std::vector<double> ESc, EScRaw, EtSc, EtaSc, PhiSc;
+  std::vector<double> EScSeed, EtScSeed, EtaScSeed, PhiScSeed;
+  std::vector<int> ScSeedNHits;
+  std::vector< std::vector<float> > ScSeedHitFrac, ScSeedHitE;
 
-  double E[100], Pt[100], Px[100], Py[100], Pz[100], Eta[100], Phi[100], Charge[100];
-  int PDG[100];
-  bool isEB[100], isEE[100];
+  std::vector<double> E, Pt, Px, Py, Pz, Eta, Phi, Charge;
+  std::vector<int> PDG;
+  std::vector<bool> isEB, isEE;
 
-  double PTrackOut[100], PtTrackOut[100], PxTrackOut[100], PyTrackOut[100], PzTrackOut[100];
-  double EtaTrackOut[100], PhiTrackOut[100];
+  std::vector<double> PTrackOut, PtTrackOut, PxTrackOut, PyTrackOut, PzTrackOut;
+  std::vector<double> EtaTrackOut, PhiTrackOut;
 
-  double PTrackIn[100], PtTrackIn[100], PxTrackIn[100], PyTrackIn[100], PzTrackIn[100];
-  double EtaTrackIn[100], PhiTrackIn[100];
+  std::vector<double> PTrackIn, PtTrackIn, PxTrackIn, PyTrackIn, PzTrackIn;
+  std::vector<double> EtaTrackIn, PhiTrackIn;
 
   std::string outputFile_;
   edm::InputTag electronCollection_;
-  edm::InputTag  mcTruthCollection_;
+  edm::InputTag mcTruthCollection_;
+  edm::InputTag barrelRecHitCollection_ ;
+  edm::InputTag endcapRecHitCollection_ ;
 
   double deltaR_;
   std::vector<int> matchingIDs_;

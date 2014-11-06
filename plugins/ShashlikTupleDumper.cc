@@ -51,8 +51,10 @@ ShashlikTupleDumper::ShashlikTupleDumper(const edm::ParameterSet& conf)
  {
   outputFile_ = conf.getParameter<std::string>("outputFile");
   histfile_ = new TFile(outputFile_.c_str(),"RECREATE");
-  electronCollection_=conf.getParameter<edm::InputTag>("electronCollection");
+  electronCollection_ = conf.getParameter<edm::InputTag>("electronCollection");
   mcTruthCollection_ = conf.getParameter<edm::InputTag>("mcTruthCollection");
+  barrelRecHitCollection_ = conf.getParameter<edm::InputTag>("barrelRecHitCollection");
+  endcapRecHitCollection_ = conf.getParameter<edm::InputTag>("endcapRecHitCollection");
   deltaR_ = conf.getParameter<double>("DeltaR");
   matchingMotherIDs_ = conf.getParameter<std::vector<int> >("MatchingMotherID");
 
@@ -85,53 +87,112 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("Nparts", &Nparts,"Nparts/I");
   tree->Branch("Nelecs", &Nelecs,"Nelecs/I");
   tree->Branch("Nphots", &Nphots,"Nphots/I"); 
-  tree->Branch("ETrue", ETrue,"ETrue[Nparts]/D");
-  tree->Branch("PtTrue", PtTrue,"PtTrue[Nparts]/D");
-  tree->Branch("PxTrue", PxTrue,"PxTrue[Nparts]/D");
-  tree->Branch("PyTrue", PyTrue,"PyTrue[Nparts]/D");
-  tree->Branch("PzTrue", PzTrue,"PzTrue[Nparts]/D");
-  tree->Branch("EtaTrue", EtaTrue,"EtaTrue[Nparts]/D");
-  tree->Branch("PhiTrue", PhiTrue,"PhiTrue[Nparts]/D");
-  tree->Branch("ChargeTrue", ChargeTrue,"ChargeTrue[Nparts]/D");
-  tree->Branch("PDGTrue", PDGTrue,"PDGTrue[Nparts]/I");
-  tree->Branch("MomPDGTrue", MomPDGTrue,"MomPDGTrue[Nparts]/I");
-  tree->Branch("FoundGsf", FoundGsf,"FoundGsf[Nparts]/I");
-  tree->Branch("ESc", ESc,"ESc[Nparts]/D");
-  tree->Branch("EtSc", EtSc,"EtSc[Nparts]/D");
-  tree->Branch("EtaSc", EtaSc,"EtaSc[Nparts]/D");
-  tree->Branch("PhiSc", PhiSc,"PhiSc[Nparts]/D");
-  tree->Branch("EScSeed", EScSeed,"EScSeed[Nparts]/D");
-  tree->Branch("EtScSeed", EtScSeed,"EtScSeed[Nparts]/D");
-  tree->Branch("EtaScSeed", EtaScSeed,"EtaScSeed[Nparts]/D");
-  tree->Branch("PhiScSeed", PhiScSeed,"PhiScSeed[Nparts]/D");
-  tree->Branch("E", E,"E[Nparts]/D");
-  tree->Branch("Pt", Pt,"Pt[Nparts]/D");
-  tree->Branch("Px", Px,"Px[Nparts]/D");
-  tree->Branch("Py", Py,"Py[Nparts]/D");
-  tree->Branch("Pz", Pz,"Pz[Nparts]/D");
-  tree->Branch("Eta", Eta,"Eta[Nparts]/D");
-  tree->Branch("Phi", Phi,"Phi[Nparts]/D");
-  tree->Branch("isEB", isEB,"isEB[Nparts]/O");
-  tree->Branch("isEE", isEE,"isEE[Nparts]/O");
-  tree->Branch("Charge", Charge,"Charge[Nparts]/D");
-  tree->Branch("PDG", PDG,"PDG[Nparts]/I");
-  tree->Branch("PTrackOut", PTrackOut,"PTrackOut[Nparts]/D");
-  tree->Branch("PtTrackOut", PtTrackOut,"PtTrackOut[Nparts]/D");
-  tree->Branch("PxTrackOut", PxTrackOut,"PxTrackOut[Nparts]/D");
-  tree->Branch("PyTrackOut", PyTrackOut,"PyTrackOut[Nparts]/D");
-  tree->Branch("PzTrackOut", PzTrackOut,"PzTrackOut[Nparts]/D");
-  tree->Branch("EtaTrackOut", EtaTrackOut,"EtaTrackOut[Nparts]/D");
-  tree->Branch("PhiTrackOut", PhiTrackOut,"PhiTrackOut[Nparts]/D");
-  tree->Branch("PTrackIn", PTrackIn,"PTrackIn[Nparts]/D");
-  tree->Branch("PtTrackIn", PtTrackIn,"PtTrackIn[Nparts]/D");
-  tree->Branch("PxTrackIn", PxTrackIn,"PxTrackIn[Nparts]/D");
-  tree->Branch("PyTrackIn", PyTrackIn,"PyTrackIn[Nparts]/D");
-  tree->Branch("PzTrackIn", PzTrackIn,"PzTrackIn[Nparts]/D");
-  tree->Branch("EtaTrackIn", EtaTrackIn,"EtaTrackIn[Nparts]/D");
-  tree->Branch("PhiTrackIn", PhiTrackIn,"PhiTrackIn[Nparts]/D");
+  tree->Branch("ETrue", &ETrue);
+  tree->Branch("PtTrue", &PtTrue);
+  tree->Branch("PxTrue", &PxTrue);
+  tree->Branch("PyTrue", &PyTrue);
+  tree->Branch("PzTrue", &PzTrue);
+  tree->Branch("EtaTrue", &EtaTrue);
+  tree->Branch("PhiTrue", &PhiTrue);
+  tree->Branch("ChargeTrue", &ChargeTrue);
+  tree->Branch("PDGTrue", &PDGTrue);
+  tree->Branch("MomPDGTrue", &MomPDGTrue);
+  tree->Branch("FoundGsf", &FoundGsf);
+  tree->Branch("ESc", &ESc);
+  tree->Branch("EScRaw", &EScRaw);
+  tree->Branch("EtSc", &EtSc);
+  tree->Branch("EtaSc", &EtaSc);
+  tree->Branch("PhiSc", &PhiSc);
+  tree->Branch("EScSeed", &EScSeed);
+  tree->Branch("EtScSeed", &EtScSeed);
+  tree->Branch("EtaScSeed", &EtaScSeed);
+  tree->Branch("PhiScSeed", &PhiScSeed);
+  tree->Branch("ScSeedNHits", &ScSeedNHits);
+  tree->Branch("ScSeedHitFrac", &ScSeedHitFrac);
+  tree->Branch("ScSeedHitE", &ScSeedHitE);
+  tree->Branch("E", &E);
+  tree->Branch("Pt", &Pt);
+  tree->Branch("Px", &Px);
+  tree->Branch("Py", &Py);
+  tree->Branch("Pz", &Pz);
+  tree->Branch("Eta", &Eta);
+  tree->Branch("Phi", &Phi);
+  tree->Branch("isEB", &isEB);
+  tree->Branch("isEE", &isEE);
+  tree->Branch("Charge", &Charge);
+  tree->Branch("PDG", &PDG);
+  tree->Branch("PTrackOut", &PTrackOut);
+  tree->Branch("PtTrackOut", &PtTrackOut);
+  tree->Branch("PxTrackOut", &PxTrackOut);
+  tree->Branch("PyTrackOut", &PyTrackOut);
+  tree->Branch("PzTrackOut", &PzTrackOut);
+  tree->Branch("EtaTrackOut", &EtaTrackOut);
+  tree->Branch("PhiTrackOut", &PhiTrackOut);
+  tree->Branch("PTrackIn", &PTrackIn);
+  tree->Branch("PtTrackIn", &PtTrackIn);
+  tree->Branch("PxTrackIn", &PxTrackIn);
+  tree->Branch("PyTrackIn", &PyTrackIn);
+  tree->Branch("PzTrackIn", &PzTrackIn);
+  tree->Branch("EtaTrackIn", &EtaTrackIn);
+  tree->Branch("PhiTrackIn", &PhiTrackIn);
 
 
 }
+
+void
+ShashlikTupleDumper::clearTreeBranchVectors()
+{
+  ETrue.clear();
+  PtTrue.clear();
+  PxTrue.clear();
+  PyTrue.clear();
+  PzTrue.clear();
+  EtaTrue.clear();
+  PhiTrue.clear();
+  ChargeTrue.clear();
+  PDGTrue.clear();
+  MomPDGTrue.clear();
+  FoundGsf.clear();
+  ESc.clear();
+  EScRaw.clear();
+  EtSc.clear();
+  EtaSc.clear();
+  PhiSc.clear();
+  EScSeed.clear();
+  EtScSeed.clear();
+  EtaScSeed.clear();
+  PhiScSeed.clear();
+  ScSeedNHits.clear();
+  ScSeedHitFrac.clear();
+  ScSeedHitE.clear();
+  E.clear();
+  Pt.clear();
+  Px.clear();
+  Py.clear();
+  Pz.clear();
+  Eta.clear();
+  Phi.clear();
+  isEB.clear();
+  isEE.clear();
+  Charge.clear();
+  PDG.clear();
+  PTrackOut.clear();
+  PtTrackOut.clear();
+  PxTrackOut.clear();
+  PyTrackOut.clear();
+  PzTrackOut.clear();
+  EtaTrackOut.clear();
+  PhiTrackOut.clear();
+  PTrackIn.clear();
+  PtTrackIn.clear();
+  PxTrackIn.clear();
+  PyTrackIn.clear();
+  PzTrackIn.clear();
+  EtaTrackIn.clear();
+  PhiTrackIn.clear();
+
+}
+
 
 void 
 ShashlikTupleDumper::endJob()
@@ -169,8 +230,15 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::Handle<reco::GenParticleCollection> genParticles;
   iEvent.getByLabel(mcTruthCollection_, genParticles);
 
+  edm::Handle<EcalRecHitCollection> barrelRecHits ;
+  iEvent.getByLabel(barrelRecHitCollection_,barrelRecHits);
+
+  edm::Handle<EcalRecHitCollection> endcapRecHits ;
+  iEvent.getByLabel(endcapRecHitCollection_,endcapRecHits);
+
   edm::Handle<std::vector< PileupSummaryInfo > >  PupInfo;
   iEvent.getByLabel(edm::InputTag("addPileupInfo"), PupInfo);
+
   std::vector<PileupSummaryInfo>::const_iterator PVI;
   NPV = -1;
   for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI) 
@@ -182,6 +250,9 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       continue;
     }
   }
+
+  // clear tree brach vectors
+  clearTreeBranchVectors();  
 
   int mcNum=0;
   bool matchingMotherID;
@@ -244,16 +315,16 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     if (!matchingMotherID) continue; 
 
     // set MC truth info
-    ETrue[mcNum] = tenergy;
-    PtTrue[mcNum] = tpt; 
-    PxTrue[mcNum] = tpx;
-    PyTrue[mcNum] = tpy;
-    PzTrue[mcNum] = tpz;
-    EtaTrue[mcNum] = teta;
-    PhiTrue[mcNum] = tphi;
-    ChargeTrue[mcNum] = tcharge;
-    PDGTrue[mcNum] = tpdgid;
-    MomPDGTrue[mcNum] = mother->pdgId();
+    ETrue.push_back(tenergy);
+    PtTrue.push_back(tpt); 
+    PxTrue.push_back(tpx);
+    PyTrue.push_back(tpy);
+    PzTrue.push_back(tpz);
+    EtaTrue.push_back(teta);
+    PhiTrue.push_back(tphi);
+    ChargeTrue.push_back(tcharge);
+    PDGTrue.push_back(tpdgid);
+    MomPDGTrue.push_back(mother->pdgId());
 
     // looking for the best matching gsf electron
     bool okGsfFound = false;
@@ -288,107 +359,146 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     // only book truth if gsf is not found
     if (!okGsfFound) 
     {
-      FoundGsf[mcNum] = 0;
-      ESc[mcNum] = -100;
-      EtSc[mcNum] = -100;
-      EtaSc[mcNum] = -100;
-      PhiSc[mcNum] = -100;
-      EScSeed[mcNum] = -100;
-      EtScSeed[mcNum] = -100;
-      EtaScSeed[mcNum] = -100;
-      PhiScSeed[mcNum] = -100;
-      E[mcNum] = -100;
-      Pt[mcNum] = -100;
-      Px[mcNum] = -100;
-      Py[mcNum] = -100;
-      Pz[mcNum] = -100;
-      Eta[mcNum] = -100;
-      Phi[mcNum] = -100;
-      Charge[mcNum] = -100;
-      PDG[mcNum] = -100;
-      isEB[mcNum] = false;
-      isEE[mcNum] = false;
-      PTrackOut[mcNum] = -100;
-      PtTrackOut[mcNum] = -100;
-      PxTrackOut[mcNum] = -100;
-      PyTrackOut[mcNum] = -100;
-      PzTrackOut[mcNum] = -100;
-      EtaTrackOut[mcNum] = -100;
-      PhiTrackOut[mcNum] = -100;
-      PTrackIn[mcNum] = -100;
-      PtTrackIn[mcNum] = -100;
-      PxTrackIn[mcNum] = -100;
-      PyTrackIn[mcNum] = -100;
-      PzTrackIn[mcNum] = -100;
-      EtaTrackIn[mcNum] = -100;
-      PhiTrackIn[mcNum] = -100;     
+      FoundGsf.push_back(0);
+      ESc.push_back(-100);
+      EScRaw.push_back(-100);
+      EtSc.push_back(-100);
+      EtaSc.push_back(-100);
+      PhiSc.push_back(-100);
+      EScSeed.push_back(-100);
+      EtScSeed.push_back(-100);
+      EtaScSeed.push_back(-100);
+      PhiScSeed.push_back(-100);
+      E.push_back(-100);
+      Pt.push_back(-100);
+      Px.push_back(-100);
+      Py.push_back(-100);
+      Pz.push_back(-100);
+      Eta.push_back(-100);
+      Phi.push_back(-100);
+      Charge.push_back(-100);
+      PDG.push_back(-100);
+      isEB.push_back(false);
+      isEE.push_back(false);
+      PTrackOut.push_back(-100);
+      PtTrackOut.push_back(-100);
+      PxTrackOut.push_back(-100);
+      PyTrackOut.push_back(-100);
+      PzTrackOut.push_back(-100);
+      EtaTrackOut.push_back(-100);
+      PhiTrackOut.push_back(-100);
+      PTrackIn.push_back(-100);
+      PtTrackIn.push_back(-100);
+      PxTrackIn.push_back(-100);
+      PyTrackIn.push_back(-100);
+      PzTrackIn.push_back(-100);
+      EtaTrackIn.push_back(-100);
+      PhiTrackIn.push_back(-100);    
+      ScSeedNHits.push_back(-100);
+      std::vector<float> avec; 
+      ScSeedHitFrac.push_back(avec);
+      std::vector<float> bvec;
+      ScSeedHitE.push_back(bvec);
       // skip the rests
       mcNum++;
       continue;
     }
 
     // otherwise found gsf
-    FoundGsf[mcNum] = 1;
-   
-    // now fill the gsf electron info
-    ESc[mcNum] = bestGsfElectron.superCluster()->energy();
-    EtSc[mcNum] = bestGsfElectron.superCluster()->energy()/cosh(bestGsfElectron.superCluster()->eta());
-    EtaSc[mcNum] = bestGsfElectron.superCluster()->eta();
-    PhiSc[mcNum] = bestGsfElectron.superCluster()->phi();
+    FoundGsf.push_back(1);
+         
+    // gsfElectron info
+    E.push_back(bestGsfElectron.energy());
+    Pt.push_back(bestGsfElectron.pt());
+    Px.push_back(bestGsfElectron.px());
+    Py.push_back(bestGsfElectron.py());
+    Pz.push_back(bestGsfElectron.pz());
+    Eta.push_back(bestGsfElectron.eta());
+    Phi.push_back(bestGsfElectron.phi());
+    isEB.push_back(bestGsfElectron.isEB());
+    isEE.push_back(bestGsfElectron.isEE()); 
+    Charge.push_back((double)bestGsfElectron.charge());
+    PDG.push_back(bestGsfElectron.pdgId());
 
-    //
-    E[mcNum] = bestGsfElectron.energy();
-    Pt[mcNum] = bestGsfElectron.pt();
-    Px[mcNum] = bestGsfElectron.px();
-    Py[mcNum] = bestGsfElectron.py();
-    Pz[mcNum] = bestGsfElectron.pz();
-    Eta[mcNum] = bestGsfElectron.eta();
-    Phi[mcNum] = bestGsfElectron.phi();
-    isEB[mcNum] = bestGsfElectron.isEB();
-    isEE[mcNum] = bestGsfElectron.isEE(); 
-    Charge[mcNum] = (double)bestGsfElectron.charge();
-    PDG[mcNum] = bestGsfElectron.pdgId();
+
+    // superCluster
+    reco::SuperClusterRef superCluster = bestGsfElectron.superCluster();
+ 
+    // now fill the gsf electron info
+    ESc.push_back(superCluster->energy());
+    EScRaw.push_back(superCluster->rawEnergy());
+    EtSc.push_back(superCluster->energy()/cosh(superCluster->eta()));
+    EtaSc.push_back(superCluster->eta());
+    PhiSc.push_back(superCluster->phi());
+
+    // seed
+    reco::CaloClusterPtr seedCluster = superCluster->seed();
+    EScSeed.push_back(seedCluster->energy());
+    EtScSeed.push_back(seedCluster->energy()/cosh(seedCluster->eta()));
+    EtaScSeed.push_back(seedCluster->eta());
+    PhiScSeed.push_back(seedCluster->phi()); 
+
+    // get hits energies and fractions
+    const std::vector<std::pair<DetId,float> > seedHitsAndFracs = seedCluster->hitsAndFractions();
+    ScSeedNHits.push_back(0);
+    std::vector<float> seedFracs;
+    std::vector<float> seedEs;
+    for (size_t ihit=0; ihit<seedHitsAndFracs.size(); ihit++)
+    {
+      // Det id
+      DetId id = seedHitsAndFracs.at(ihit).first;
+      // try barrel first
+      EcalRecHitCollection::const_iterator it = barrelRecHits->find( id );
+      // if not found in barrel, try endcap
+      if (it == barrelRecHits->end()) it = endcapRecHits->find( id );
+      // if found, give energy
+      if (it !=endcapRecHits->end()) 
+      {
+        seedFracs.push_back(seedHitsAndFracs.at(ihit).second);
+        seedEs.push_back(it->energy());
+        ScSeedNHits.at(mcNum)++;
+      }
+    } 
+    ScSeedHitFrac.push_back(seedFracs);
+    ScSeedHitE.push_back(seedEs);
+    
  
     reco::GsfTrackRef gsfTrack = bestGsfElectron.gsfTrack();
     if (!gsfTrack) 
     {
-      PTrackOut[mcNum] = -100;
-      PtTrackOut[mcNum] = -100;
-      PxTrackOut[mcNum] = -100;
-      PyTrackOut[mcNum] = -100;
-      PzTrackOut[mcNum] = -100;
-      EtaTrackOut[mcNum] = -100;
-      PhiTrackOut[mcNum] = -100;
-      PTrackIn[mcNum] = -100;
-      PtTrackIn[mcNum] = -100;
-      PxTrackIn[mcNum] = -100;
-      PyTrackIn[mcNum] = -100;
-      PzTrackIn[mcNum] = -100;
-      EtaTrackIn[mcNum] = -100;
-      PhiTrackIn[mcNum] = -100;
-      EScSeed[mcNum] = -100;
-      EtScSeed[mcNum] = -100;
-      EtaScSeed[mcNum] = -100;
-      PhiScSeed[mcNum] = -100;
+      PTrackOut.push_back(-100);
+      PtTrackOut.push_back(-100);
+      PxTrackOut.push_back(-100);
+      PyTrackOut.push_back(-100);
+      PzTrackOut.push_back(-100);
+      EtaTrackOut.push_back(-100);
+      PhiTrackOut.push_back(-100);
+      PTrackIn.push_back(-100);
+      PtTrackIn.push_back(-100);
+      PxTrackIn.push_back(-100);
+      PyTrackIn.push_back(-100);
+      PzTrackIn.push_back(-100);
+      EtaTrackIn.push_back(-100);
+      PhiTrackIn.push_back(-100);
       mcNum++;
       continue;
     }
 
    
-    PTrackOut[mcNum] = gsfTrack->outerMomentum().R();
-    PtTrackOut[mcNum] = gsfTrack->outerMomentum().Rho();
-    PxTrackOut[mcNum] = gsfTrack->outerMomentum().X();
-    PyTrackOut[mcNum] = gsfTrack->outerMomentum().Y();
-    PzTrackOut[mcNum] = gsfTrack->outerMomentum().Z();
-    EtaTrackOut[mcNum] = gsfTrack->outerMomentum().eta();
-    PhiTrackOut[mcNum] = gsfTrack->outerMomentum().phi();
-    PTrackIn[mcNum] = gsfTrack->innerMomentum().R();
-    PtTrackIn[mcNum] = gsfTrack->innerMomentum().Rho();
-    PxTrackIn[mcNum] = gsfTrack->innerMomentum().X();
-    PyTrackIn[mcNum] = gsfTrack->innerMomentum().Y();
-    PzTrackIn[mcNum] = gsfTrack->innerMomentum().Z();
-    EtaTrackIn[mcNum] = gsfTrack->innerMomentum().eta();
-    PhiTrackIn[mcNum] = gsfTrack->innerMomentum().phi();
+    PTrackOut.push_back(gsfTrack->outerMomentum().R());
+    PtTrackOut.push_back(gsfTrack->outerMomentum().Rho());
+    PxTrackOut.push_back(gsfTrack->outerMomentum().X());
+    PyTrackOut.push_back(gsfTrack->outerMomentum().Y());
+    PzTrackOut.push_back(gsfTrack->outerMomentum().Z());
+    EtaTrackOut.push_back(gsfTrack->outerMomentum().eta());
+    PhiTrackOut.push_back(gsfTrack->outerMomentum().phi());
+    PTrackIn.push_back(gsfTrack->innerMomentum().R());
+    PtTrackIn.push_back(gsfTrack->innerMomentum().Rho());
+    PxTrackIn.push_back(gsfTrack->innerMomentum().X());
+    PyTrackIn.push_back(gsfTrack->innerMomentum().Y());
+    PzTrackIn.push_back(gsfTrack->innerMomentum().Z());
+    EtaTrackIn.push_back(gsfTrack->innerMomentum().eta());
+    PhiTrackIn.push_back(gsfTrack->innerMomentum().phi());
 
 
     // number of mc particles
