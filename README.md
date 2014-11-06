@@ -31,6 +31,26 @@ Run Ntuple Dumper:
 Note: check and change the input and output files in the configuration files
 
 
+If using Crab3, some useful commands:
+
+Setup env:
+>    source /cvmfs/cms.cern.ch/crab3/crab.sh
+
+Init grid cert:
+
+>   voms-proxy-init -voms cms --hours 172 --valid 172:00
+
+Submit:
+
+>   crab submit -c crabJob_DYToEE_withHits.py
+
+Check status:
+
+>   crab status -t crab_projects/crab_crab3Job_DYToEE_withHits/
+
+
+
+
 Run the analysis macros:
 
 >  cp ShashlikAnalyzer/ShashlikAnalyzer/test/*.C .
@@ -38,6 +58,7 @@ Run the analysis macros:
 one example is PrintPlots.C
 It read the Ntuple produced by the ShashlikeTupleDumper and draw plots.
 Plots are printted into a ps/pdf file + a root file.
+
 
 
 
