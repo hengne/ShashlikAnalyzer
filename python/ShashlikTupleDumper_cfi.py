@@ -7,6 +7,6 @@ ShashlikAna = cms.EDAnalyzer('ShashlikTupleDumper',
     barrelRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
     endcapRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEK"),
     outputFile = cms.string("ShashlikTupleDumper.root"),
-    DeltaR = cms.double(0.05),
+    DeltaR = cms.double(0.5),
     MatchingMotherID = cms.vint32(0),
 )

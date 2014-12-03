@@ -20,6 +20,8 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
 
 class TFile;
 class TTree;
@@ -38,6 +40,9 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
 
   void bookTree();
   void clearTreeBranchVectors();
+
+  double matchDR(reco::GenParticleCollection::const_iterator pmc, reco::GsfElectronCollection::const_iterator prec);
+  double matchDRV2(reco::GenParticleCollection::const_iterator pmc, reco::GsfElectronCollection::const_iterator prec);
 
  private:
 

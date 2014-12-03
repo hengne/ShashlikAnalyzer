@@ -42,6 +42,7 @@
 #include "TMath.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TVector2.h"
 #include <iostream>
 
 DEFINE_FWK_MODULE(ShashlikTupleDumper);
@@ -328,27 +329,23 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
     // looking for the best matching gsf electron
     bool okGsfFound = false;
-    double gsfOkRatio = 999999.;
+    double deltaR_min = 999999.;
 
     // find best matched electron
     reco::GsfElectron bestGsfElectron;
     for (reco::GsfElectronCollection::const_iterator gsfIter=gsfElectrons->begin();
          gsfIter!=gsfElectrons->end(); gsfIter++)
     {
-      double dphi = gsfIter->phi()-mcIter->phi();
-      if (std::abs(dphi)>CLHEP::pi) 
-      {  dphi = dphi < 0? (CLHEP::twopi) + dphi : dphi - CLHEP::twopi; }
-
-      double deltaR = sqrt(std::pow((gsfIter->eta()-mcIter->eta()),2) + std::pow(dphi,2));
+      double deltaR = matchDRV2(mcIter, gsfIter);
+      //std::cout << "mcPar " << mcNum << ": deltaR=" << deltaR << std::endl;
       if ( deltaR < deltaR_ )
       {
         if ( ( (mcIter->pdgId() == 11) && (gsfIter->charge() < 0.) ) ||
              ( (mcIter->pdgId() == -11) && (gsfIter->charge() > 0.) ) )
         {
-          double tmpGsfRatio = gsfIter->p()/mcIter->p();
-          if ( std::abs(tmpGsfRatio-1) < std::abs(gsfOkRatio-1) ) 
+          if (deltaR<deltaR_min) 
           {
-            gsfOkRatio = tmpGsfRatio;
+            deltaR_min = deltaR;
             bestGsfElectron=*gsfIter;
             okGsfFound = true;
           }
@@ -510,6 +507,40 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   Nparts = mcNum;
   tree->Fill();
   
+}
+
+
+double ShashlikTupleDumper::matchDR(reco::GenParticleCollection::const_iterator pmc, reco::GsfElectronCollection::const_iterator prec )
+{
+  double xvg = 0.1*pmc->vertex().x();
+  double yvg = 0.1*pmc->vertex().y();
+  double zvg = 0.1*pmc->vertex().z();
+  double pxg = pmc->px();
+  double pyg = pmc->py();
+  double pzg = pmc->pz();
+  double eg  = pmc->energy();
+
+  double xp = prec->caloPosition().x();
+  double yp = prec->caloPosition().y();
+  double zp = prec->caloPosition().z();
+
+  double R = sqrt((xp-xvg)*(xp-xvg) + (yp-yvg)*(yp-yvg) + (zp-zvg)*(zp-zvg));
+  double dR = sqrt(pow(xvg + R*pxg/eg - xp, 2) + pow(yvg + R*pyg/eg - yp, 2) + pow(zvg + R*pzg/eg - zp, 2));
+  if(dR<1e-5) dR=1e-5;
+  return dR;
+}
+
+double ShashlikTupleDumper::matchDRV2(reco::GenParticleCollection::const_iterator pmc, reco::GsfElectronCollection::const_iterator prec )
+{
+  double mcEta = pmc->eta();
+  double mcPhi = pmc->phi();
+
+  double pEta = prec->trackMomentumAtVtx().eta(); 
+  double pPhi = prec->trackMomentumAtVtx().phi(); 
+
+  double deta = mcEta - pEta;
+  double dphi = TVector2::Phi_mpi_pi(mcPhi-pPhi);
+  return TMath::Sqrt(deta*deta+dphi*dphi);
 }
 
 
