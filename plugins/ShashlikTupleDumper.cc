@@ -17,6 +17,7 @@
 //
 //
 
+
 // user include files
 #include "ShashlikAnalyzer/ShashlikAnalyzer/plugins/ShashlikTupleDumper.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -27,6 +28,8 @@
 #include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
+#include "DataFormats/CaloRecHit/interface/CaloClusterFwd.h"
+#include "DataFormats/CaloRecHit/interface/CaloCluster.h"
 #include "DataFormats/EgammaReco/interface/BasicClusterFwd.h"
 #include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
 #include "DataFormats/EgammaReco/interface/ElectronSeed.h"
@@ -35,8 +38,7 @@
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
 #include"SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
-
-#include "CLHEP/Units/GlobalPhysicalConstants.h"
+//#include "CLHEP/Units/GlobalPhysicalConstants.h"
 #include <iostream>
 #include <vector>
 #include "TMath.h"
@@ -44,6 +46,9 @@
 #include "TTree.h"
 #include "TVector2.h"
 #include <iostream>
+
+
+
 
 DEFINE_FWK_MODULE(ShashlikTupleDumper);
 
@@ -58,6 +63,7 @@ ShashlikTupleDumper::ShashlikTupleDumper(const edm::ParameterSet& conf)
   endcapRecHitCollection_ = conf.getParameter<edm::InputTag>("endcapRecHitCollection");
   deltaR_ = conf.getParameter<double>("DeltaR");
   matchingMotherIDs_ = conf.getParameter<std::vector<int> >("MatchingMotherID");
+  printMCtable_ = conf.getParameter<bool>("printMCtable");
 
  }
 
@@ -111,6 +117,13 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("ScSeedNHits", &ScSeedNHits);
   tree->Branch("ScSeedHitFrac", &ScSeedHitFrac);
   tree->Branch("ScSeedHitE", &ScSeedHitE);
+  tree->Branch("ScNCl", &ScNCl);
+  tree->Branch("ScClNHits", &ScClNHits);
+  tree->Branch("ScClE", &ScClE);
+  tree->Branch("ScClEta", &ScClEta);
+  tree->Branch("ScClPhi", &ScClPhi);
+  tree->Branch("ScClHitFrac", &ScClHitFrac);
+  tree->Branch("ScClHitE", &ScClHitE);
   tree->Branch("E", &E);
   tree->Branch("Pt", &Pt);
   tree->Branch("Px", &Px);
@@ -166,6 +179,13 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   ScSeedNHits.clear();
   ScSeedHitFrac.clear();
   ScSeedHitE.clear();
+  ScNCl.clear();
+  ScClNHits.clear();
+  ScClE.clear();
+  ScClEta.clear();
+  ScClPhi.clear();
+  ScClHitFrac.clear();
+  ScClHitE.clear();
   E.clear();
   Pt.clear();
   Px.clear();
@@ -256,10 +276,12 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   clearTreeBranchVectors();  
 
   int mcNum=0;
+  int mcid=0;
   bool matchingMotherID;
 
-  // print 
-  //std::cout << " MC info: id | pdgid | status | charge | mass | energy | pt | px | py | pz | " << std::endl;
+  // print
+  if (printMCtable_)  
+      std::cout << " MC info: id | pdgid | status | charge | mass | energy | p | pt | px | py | pz | vx | vy | vz |" << std::endl;
 
   // association mc-reco
   for (reco::GenParticleCollection::const_iterator mcIter=genParticles->begin();
@@ -272,27 +294,32 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     double tpy = mcIter->py();
     double tpz = mcIter->pz();
     double tpt = mcIter->pt();
-    //double tp = mcIter->p();
+    double tp = mcIter->p();
     double teta = mcIter->eta();
     double tphi = mcIter->phi();
     double tenergy = mcIter->energy();
-    //double tmass =  mcIter->mass();
+    double tmass =  mcIter->mass();
     int tpdgid = mcIter->pdgId();
     int tstatus = mcIter->status();
-    //double tvx = mcIter->vx();
-    //double tvy = mcIter->vy();
-    //double tvz = mcIter->vz();
-    //std::cout << "   " << mcNum << " | "
-    //     << tpdgid << " | "
-    //     << tstatus << " | "
-    //     << tcharge << " | "
-    //     << tmass << " | "
-    //     << tenergy << " | "
-    //     << tpt << " | "
-    //     << tpx << " | "
-    //     << tpy << " | "
-    //     << tpz << " | "
-    //     << std::endl;
+    double tvx = mcIter->vx();
+    double tvy = mcIter->vy();
+    double tvz = mcIter->vz();
+    if (printMCtable_) 
+      std::cout << "   " << mcid++ << " | "
+         << tpdgid << " | "
+         << tstatus << " | "
+         << tcharge << " | "
+         << tmass << " | "
+         << tenergy << " | "
+         << tp << " | "
+         << tpt << " | "
+         << tpx << " | "
+         << tpy << " | "
+         << tpz << " | "
+         << tvx << " | "
+         << tvy << " | "
+         << tvz << " | "
+         << std::endl;
 
     
     // only use gen status ==1
@@ -396,6 +423,16 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       ScSeedHitFrac.push_back(avec);
       std::vector<float> bvec;
       ScSeedHitE.push_back(bvec);
+      ScNCl.push_back(-100);
+      std::vector<int> cvec;
+      ScClNHits.push_back(cvec);
+      std::vector<double> dvec1,dvec2,dvec3;
+      ScClE.push_back(dvec1);
+      ScClEta.push_back(dvec2);
+      ScClPhi.push_back(dvec3);
+      std::vector<float> evec1,evec2;
+      ScClHitFrac.push_back(evec1);
+      ScClHitE.push_back(evec2);
       // skip the rests
       mcNum++;
       continue;
@@ -458,8 +495,48 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     } 
     ScSeedHitFrac.push_back(seedFracs);
     ScSeedHitE.push_back(seedEs);
+
+    // all clusters
+    ScNCl.push_back((int)superCluster->clustersSize());
+    std::vector<int> clnhits;
+    std::vector<double> cle;
+    std::vector<double> cleta;
+    std::vector<double> clphi;
+    std::vector<float> hitfracs;
+    std::vector<float> hites;
+    for (reco::CaloCluster_iterator caloCluster = superCluster->clustersBegin();
+         caloCluster!=superCluster->clustersEnd(); caloCluster++)
+    {
+      cle.push_back((*caloCluster)->energy());
+      cleta.push_back((*caloCluster)->eta());
+      clphi.push_back((*caloCluster)->phi());
+      const std::vector<std::pair<DetId,float> > hitsandfracs = (*caloCluster)->hitsAndFractions(); 
+      clnhits.push_back(0);
+      for (size_t ihit=0; ihit<hitsandfracs.size(); ihit++)
+      {
+        // Det id
+        DetId id = hitsandfracs.at(ihit).first;
+        // try barrel first
+        EcalRecHitCollection::const_iterator it = barrelRecHits->find( id );
+        // if not found in barrel, try endcap
+        if (it == barrelRecHits->end()) it = endcapRecHits->find( id );
+        // if found, give energy
+        if (it !=endcapRecHits->end())
+        {
+          hitfracs.push_back(hitsandfracs.at(ihit).second);
+          hites.push_back(it->energy());
+          clnhits.back()++;
+        }
+      }
+    }    
     
- 
+    ScClNHits.push_back(clnhits);
+    ScClHitFrac.push_back(hitfracs);
+    ScClHitE.push_back(hites);
+    ScClE.push_back(cle);
+    ScClEta.push_back(cleta);
+    ScClPhi.push_back(clphi);
+
     reco::GsfTrackRef gsfTrack = bestGsfElectron.gsfTrack();
     if (!gsfTrack) 
     {

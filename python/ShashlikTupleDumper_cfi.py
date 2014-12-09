@@ -8,5 +8,7 @@ ShashlikAna = cms.EDAnalyzer('ShashlikTupleDumper',
     endcapRecHitCollection = cms.InputTag("ecalRecHit","EcalRecHitsEK"),
     outputFile = cms.string("ShashlikTupleDumper.root"),
     DeltaR = cms.double(0.5),
-    MatchingMotherID = cms.vint32(0),
+    MatchingMotherID = cms.vint32(23),
+    printMCtable = cms.bool(False)
+
 )

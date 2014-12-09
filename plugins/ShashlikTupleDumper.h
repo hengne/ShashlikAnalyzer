@@ -23,6 +23,7 @@
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
 
+
 class TFile;
 class TTree;
 
@@ -69,6 +70,14 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   std::vector<int> ScSeedNHits;
   std::vector< std::vector<float> > ScSeedHitFrac, ScSeedHitE;
 
+  std::vector<int> ScNCl;
+  std::vector< std::vector<int> > ScClNHits;
+  std::vector< std::vector<double> > ScClE;
+  std::vector< std::vector<double> > ScClEta;
+  std::vector< std::vector<double> > ScClPhi;
+  std::vector< std::vector<float> > ScClHitFrac;
+  std::vector< std::vector<float> > ScClHitE;
+
   std::vector<double> E, Pt, Px, Py, Pz, Eta, Phi, Charge;
   std::vector<int> PDG;
   std::vector<bool> isEB, isEE;
@@ -88,6 +97,8 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   double deltaR_;
   std::vector<int> matchingIDs_;
   std::vector<int> matchingMotherIDs_;
+
+  bool printMCtable_;
 
  };
 
