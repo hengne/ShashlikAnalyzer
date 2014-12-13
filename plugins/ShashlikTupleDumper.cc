@@ -276,8 +276,40 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   clearTreeBranchVectors();  
 
   int mcNum=0;
-  int mcid=0;
   bool matchingMotherID;
+  int mcid=0;
+
+  // get list of MC particles to study
+  std::vector<reco::GenParticle*> genList;
+  for (unsigned int i=0; i<matchingMotherIDs_.size(); i++)
+  {
+    // get the mom at status=3
+    reco::GenParticle* momPtr;
+    for (reco::GenParticleCollection::const_iterator mcIter=genParticles->begin();
+         mcIter != genParticles->end(); mcIter++ )
+    {
+      if (mcIter->pdgId()==matchingMotherIDs_.at(i) &&
+          mcIter->status()==3)
+      { momPtr = mcIter; }
+    }
+
+    size_t ndau = momPtr->numberOfDaughters();
+    for( size_t j = 0; j < ndau; ++j )
+    {
+      
+      if ( momPtr->daughter(j)->status()==1) 
+      {
+        int pdgid = momPtr->daughter(j)->pdgId();
+        if (abs(pdgid)==11)
+        {
+
+        }
+      }
+      
+    }
+   
+    
+  }
 
   // print
   if (printMCtable_)  
