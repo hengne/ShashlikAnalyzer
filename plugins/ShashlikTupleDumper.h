@@ -79,8 +79,10 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   std::vector< std::vector<float> > ScClHitE;
 
   std::vector<double> E, Pt, Px, Py, Pz, Eta, Phi, Charge;
-  std::vector<int> PDG;
-  std::vector<bool> isEB, isEE;
+  std::vector<int> PDG, Classify;
+  std::vector<bool> isEB, isEE, ecalDriven;
+  std::vector<float> HoE, HoE1, HoE2, sigmaEtaEta, sigmaIetaIeta, sigmaIphiIphi, r9;
+  std::vector<float> dEtaSCAtVtx, dEtaSCAtCal, dPhiSCAtVtx, dPhiSCAtCal, trackFbrem, scFbrem;
 
   std::vector<double> PTrackOut, PtTrackOut, PxTrackOut, PyTrackOut, PzTrackOut;
   std::vector<double> EtaTrackOut, PhiTrackOut;

@@ -1,9 +1,12 @@
 {
-  char* tag = 
+  char* tag =
+   "TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_ph1pu140"
+   //"TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_pu0_v1" 
+   //"TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_pu140_v1" 
    //  "ShashlikTupleDumper_RelValSingleElectronPt35Extended_DES23_62_V1_UPG2023SHNoTaper-v1"
    //  "ShashlikTupleDumper_RelValZEE_14TeV_GEN-SIM-RECO_DES23_62_V1_UPG2023SHNoTaper-v1"
    //   "Ntuple_DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola_test3"
-      "Ntuple_DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola_withHits"
+   //   "Ntuple_DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola_withHits"
   ;
 
   char name[1000];
@@ -54,6 +57,195 @@
   TCanvas* plots = new TCanvas("plots", "plots", 400, 400);
   sprintf(name, "plots_%s.ps[", tag);
   plots->Print(name);
+
+
+
+  // classification vs. Eta
+  h1 = new TH1D("h1", "h1", 25, 0, 5);
+  h2 = new TH1D("h2", "h2", 25, 0, 5);
+  h3 = new TH1D("h3", "h3", 25, 0, 5);
+  h4 = new TH1D("h4", "h4", 25, 0, 5);
+  h5 = new TH1D("h5", "h5", 25, 0, 5);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  h5->Sumw2();
+  tree->Draw("abs(EtaTrue)>>h1", "Classify==0&&FoundGsf");  
+  tree->Draw("abs(EtaTrue)>>h2", "Classify==1&&FoundGsf");  
+  tree->Draw("abs(EtaTrue)>>h3", "Classify==2&&FoundGsf");  
+  tree->Draw("abs(EtaTrue)>>h4", "Classify==3&&FoundGsf");  
+  h1->SetName("ClassEtaFracGolden");
+  h2->SetName("ClassEtaFracBigBrem");
+  h3->SetName("ClassEtaFracBadTrack");
+  h4->SetName("ClassEtaFracShower");
+  h5->SetName("ClassEtaFracAll");
+  h1->SetTitle("Electron Classification Fraction vs. Eta");
+  h2->SetTitle("Electron Classification Fraction vs. Eta");
+  h3->SetTitle("Electron Classification Fraction vs. Eta");
+  h4->SetTitle("Electron Classification Fraction vs. Eta");
+  h5->SetTitle("Electron Classification Fraction vs. Eta");
+  h5->Add(h1);
+  h5->Add(h2);
+  h5->Add(h3);
+  h5->Add(h4);
+  h1->Divide(h5);
+  h2->Divide(h5);
+  h3->Divide(h5);
+  h4->Divide(h5);
+  h1->SetMarkerColor(kGreen+1);
+  h2->SetMarkerColor(kYellow+1);
+  h3->SetMarkerColor(kOrange+1);
+  h4->SetMarkerColor(kViolet+1);
+  h1->SetLineColor(kGreen+1);
+  h2->SetLineColor(kYellow+1);
+  h3->SetLineColor(kOrange+1);
+  h4->SetLineColor(kViolet+1);
+  h1->SetFillColor(kGreen+1);
+  h2->SetFillColor(kYellow+1);
+  h3->SetFillColor(kOrange+1);
+  h4->SetFillColor(kViolet+1);
+  h1->SetFillStyle(3004);
+  h2->SetFillStyle(3005);
+  h3->SetFillStyle(3006);
+  h4->SetFillStyle(3007);
+  h1->SetMarkerStyle(20); 
+  h2->SetMarkerStyle(20); 
+  h3->SetMarkerStyle(20); 
+  h4->SetMarkerStyle(20); 
+  h1->GetXaxis()->SetTitle("|#eta(true)|");
+  h2->GetXaxis()->SetTitle("|#eta(true)|");
+  h3->GetXaxis()->SetTitle("|#eta(true)|");
+  h4->GetXaxis()->SetTitle("|#eta(true)|");
+  h1->GetYaxis()->SetTitle("Electron class fraction");
+  h2->GetYaxis()->SetTitle("Electron class fraction");
+  h3->GetYaxis()->SetTitle("Electron class fraction");
+  h4->GetYaxis()->SetTitle("Electron class fraction");
+  h1->GetYaxis()->SetRangeUser(0, 1.2);
+  h2->GetYaxis()->SetRangeUser(0, 1.2);
+  h3->GetYaxis()->SetRangeUser(0, 1.2);
+  h4->GetYaxis()->SetRangeUser(0, 1.2);
+  h1->GetXaxis()->SetRangeUser(0, 3);
+  h2->GetXaxis()->SetRangeUser(0, 3);
+  h3->GetXaxis()->SetRangeUser(0, 3);
+  h4->GetXaxis()->SetRangeUser(0, 3);
+
+  lg = new TLegend(0.22,0.7,0.5,0.88);
+  lg->SetName("lg_ClassEtaFrac");
+  lg->AddEntry(h1, "Golden", "lpf");
+  lg->AddEntry(h2, "Big Brem", "lpf");
+  lg->AddEntry(h3, "Bad Track", "lpf");
+  lg->AddEntry(h4, "Showering", "lpf");
+
+  plots->Clear();
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  h3->Draw("hist same");
+  h4->Draw("hist same");
+  lg->Draw();
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+  h5->Write();
+  lg->Write();
+
+
+  // classification Esc/Etrue
+  h1 = new TH1D("h1", "h1", 100, 0., 2);
+  h2 = new TH1D("h2", "h2", 100, 0., 2);
+  h3 = new TH1D("h3", "h3", 100, 0., 2);
+  h4 = new TH1D("h4", "h4", 100, 0., 2);
+  h5 = new TH1D("h5", "h5", 100, 0., 2);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  h5->Sumw2();
+  tree->Draw("ESc/ETrue>>h1", "Classify==0&&FoundGsf");
+  tree->Draw("ESc/ETrue>>h2", "Classify==1&&FoundGsf");
+  tree->Draw("ESc/ETrue>>h3", "Classify==2&&FoundGsf");
+  tree->Draw("ESc/ETrue>>h4", "Classify==3&&FoundGsf");
+  h1->SetName("ClassEScOvETrueGolden");
+  h2->SetName("ClassEScOvETrueBigBrem");
+  h3->SetName("ClassEScOvETrueBadTrack");
+  h4->SetName("ClassEScOvETrueShower");
+  h1->SetTitle("Electron Classification ESc/Etrue");
+  h2->SetTitle("Electron Classification ESc/Etrue");
+  h3->SetTitle("Electron Classification ESc/Etrue");
+  h4->SetTitle("Electron Classification ESc/Etrue");
+  h1->Scale(1.0/h1->Integral());
+  h2->Scale(1.0/h2->Integral());
+  h3->Scale(1.0/h3->Integral());
+  h4->Scale(1.0/h4->Integral());
+  h1->SetMarkerColor(kGreen+1);
+  h2->SetMarkerColor(kYellow+1);
+  h3->SetMarkerColor(kOrange+1);
+  h4->SetMarkerColor(kViolet+1);
+  h1->SetLineColor(kGreen+1);
+  h2->SetLineColor(kYellow+1);
+  h3->SetLineColor(kOrange+1);
+  h4->SetLineColor(kViolet+1);
+  h1->SetFillColor(kGreen+1);
+  h2->SetFillColor(kYellow+1);
+  h3->SetFillColor(kOrange+1);
+  h4->SetFillColor(kViolet+1);
+  h1->SetFillStyle(3004);
+  h2->SetFillStyle(3005);
+  h3->SetFillStyle(3006);
+  h4->SetFillStyle(3007);
+  h1->SetMarkerStyle(20);
+  h2->SetMarkerStyle(20);
+  h3->SetMarkerStyle(20);
+  h4->SetMarkerStyle(20);
+  h1->GetXaxis()->SetTitle("E(SC)/E(true)");
+  h2->GetXaxis()->SetTitle("E(SC)/E(true)");
+  h3->GetXaxis()->SetTitle("E(SC)/E(true)");
+  h4->GetXaxis()->SetTitle("E(SC)/E(true)");
+  h1->GetYaxis()->SetTitle("Arbitrary units");
+  h2->GetYaxis()->SetTitle("Arbitrary units");
+  h3->GetYaxis()->SetTitle("Arbitrary units");
+  h4->GetYaxis()->SetTitle("Arbitrary units");
+  h1->GetYaxis()->SetRangeUser(0, 0.3);
+  h2->GetYaxis()->SetRangeUser(0, 0.3);
+  h3->GetYaxis()->SetRangeUser(0, 0.3);
+  h4->GetYaxis()->SetRangeUser(0, 0.3);
+  //h1->GetXaxis()->SetRangeUser(0, 3);
+  //h2->GetXaxis()->SetRangeUser(0, 3);
+  //h3->GetXaxis()->SetRangeUser(0, 3);
+  //h4->GetXaxis()->SetRangeUser(0, 3);
+
+  lg = new TLegend(0.22,0.7,0.5,0.88);
+  lg->SetName("lg_ClassEScOvETrue");
+  lg->AddEntry(h1, "Golden", "lpf");
+  lg->AddEntry(h2, "Big Brem", "lpf");
+  lg->AddEntry(h3, "Bad Track", "lpf");
+  lg->AddEntry(h4, "Showering", "lpf");
+
+  plots->Clear();
+  h2->Draw("hist");
+  h1->Draw("hist same");
+  h3->Draw("hist same");
+  h4->Draw("hist same");
+  lg->Draw();
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+  h5->Write();
+  lg->Write();
+
+
 
   // PtTrue
   h1 = new TH1D("h1", "h1", 100, 0, 100);
@@ -218,6 +410,55 @@
   h3->Write();
   h4->Write();
   lg->Write();  
+
+  // Eff vs PT
+  h1 = new TH1D("h1", "h1", 100, 0, 100);
+  h2 = new TH1D("h2", "h2", 100, 0, 100);
+  h3 = new TH1D("h3", "h3", 100, 0, 100);
+  h4 = new TH1D("h4", "h4", 100, 0, 100);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  tree->Draw("PtTrue>>h1", "abs(EtaTrue)<1.479");
+  tree->Draw("PtTrue>>h2", "abs(EtaTrue)>1.479");
+  tree->Draw("PtTrue>>h3", "abs(EtaTrue)<1.479&&FoundGsf");
+  tree->Draw("PtTrue>>h4", "abs(EtaTrue)>1.479&&FoundGsf");
+  h3->Divide(h1);
+  h4->Divide(h2);
+  h3->SetName("EleEffPtTrueEB");
+  h4->SetName("EleEffPtTrueEE");
+  h3->SetTitle("Electron Gsf Finding Efficiency vs True Pt");
+  h4->SetTitle("Electron Gsf Finding Efficiency vs True Pt");
+  h3->SetMarkerStyle(20);
+  h3->SetMarkerColor(2);
+  h3->SetLineColor(2);
+  h4->SetMarkerStyle(20);
+  h4->SetMarkerColor(4);
+  h4->SetLineColor(4);
+  h3->GetXaxis()->SetTitle("Pt True");
+  h4->GetXaxis()->SetTitle("Pt True");
+  h3->GetYaxis()->SetRangeUser(0.0, 1.5);
+  h4->GetYaxis()->SetRangeUser(0.0, 1.5);
+
+  lg = new TLegend(0.8,0.8,0.95,0.95);
+  lg->SetName("lg_EffPtTrue");
+  lg->AddEntry(h3, "EB", "pl");
+  lg->AddEntry(h4, "EE", "pl");
+
+  plots->Clear();
+  h3->Draw();
+  h4->Draw("same");
+  lg->Draw();
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h3->Write();
+  h4->Write();
+  lg->Write();
+
 
   // Et sc 
   h1 = new TH1D("h1", "h1", 100, 0, 100);
@@ -566,7 +807,6 @@
   h2->Write();
   lg->Write();
 
-
   // ESc/ETrue vs ETrue
   h2d1 = new TH2D("h2d1", "h2d1", 30, 0, 300, 600,0.0,3.0);
   h2d2 = new TH2D("h2d2", "h2d2", 30, 0, 300, 600,0.0,3.0);
@@ -873,6 +1113,25 @@
   h3->Write();
   h4->Write();
   lg->Write();
+
+
+  // ESc/ETrue vs EtaTrue EB+EE
+  h2d1 = new TH2D("h2d1", "h2d1", 60, -3, 3, 600,0.0,3.0);
+  h2d1->Sumw2();
+  tree->Draw("ESc/ETrue:EtaTrue>>h2d1", "FoundGsf");
+  h2d1->SetName("EleEScOETrueVsEtaTrueEBEE");
+  h2d1->SetTitle("Electron SuperCluster Energy Response vs EtaTrue");
+  h2d1->GetXaxis()->SetTitle("EtaTrue");
+  h2d1->GetYaxis()->SetTitle("ESc/ETrue");
+
+  plots->Clear();
+  h2d1->Draw("colz");
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+  fileout->cd();
+  h2d1->Write();
+
 
 
   // ESc/ETrue vs EtaTrue
@@ -1291,8 +1550,8 @@
   h4->GetXaxis()->SetTitle("ETrue (GeV)");
   h3->GetYaxis()->SetTitle("RMS PTrackIn/ETrue");
   h4->GetYaxis()->SetTitle("RMS PTrackIn/ETrue");
-  h3->GetYaxis()->SetRangeUser(0.0, 2);
-  h4->GetYaxis()->SetRangeUser(0.0, 2);
+  h3->GetYaxis()->SetRangeUser(0.0, 0.5);
+  h4->GetYaxis()->SetRangeUser(0.0, 0.5);
 
   lg = new TLegend(0.8,0.8,0.95,0.95);
   lg->SetName("lg_RMSPTrackInOETrueVsETrue");

@@ -135,6 +135,21 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("isEE", &isEE);
   tree->Branch("Charge", &Charge);
   tree->Branch("PDG", &PDG);
+  tree->Branch("Classify", &Classify);
+  tree->Branch("HoE", &HoE); // hcalOverEcal()
+  tree->Branch("HoE1", &HoE1); // hcalDepth1OverEcal1()
+  tree->Branch("HoE2", &HoE2); // hcalDepth1OverEcal2()
+  tree->Branch("ecalDriven", &ecalDriven); //ecalDrivenSeed() 
+  tree->Branch("sigmaEtaEta", &sigmaEtaEta); // sigmaEtaEta()
+  tree->Branch("sigmaIetaIeta", &sigmaIetaIeta); // sigmaIetaIeta()
+  tree->Branch("sigmaIphiIphi", &sigmaIphiIphi); // sigmaIphiIphi()
+  tree->Branch("r9", &r9); // r9()
+  tree->Branch("dEtaSCAtVtx", &dEtaSCAtVtx); // deltaEtaSuperClusterAtVtx 
+  tree->Branch("dEtaSCAtCal", &dEtaSCAtCal); // deltaEtaEleClusterAtCalo
+  tree->Branch("dPhiSCAtVtx", &dPhiSCAtVtx); // deltaPhiSuperClusterAtVtx 
+  tree->Branch("dPhiSCAtCal", &dPhiSCAtCal); // deltaPhiEleClusterAtCalo
+  tree->Branch("trackFbrem", &trackFbrem); // trackFbrem 
+  tree->Branch("scFbrem", &scFbrem); // superClusterFbrem
   tree->Branch("PTrackOut", &PTrackOut);
   tree->Branch("PtTrackOut", &PtTrackOut);
   tree->Branch("PxTrackOut", &PxTrackOut);
@@ -197,6 +212,21 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   isEE.clear();
   Charge.clear();
   PDG.clear();
+  Classify.clear();
+  HoE.clear();
+  HoE1.clear();
+  HoE2.clear();
+  ecalDriven.clear();
+  sigmaEtaEta.clear();
+  sigmaIetaIeta.clear();
+  sigmaIphiIphi.clear();
+  r9.clear();
+  dEtaSCAtVtx.clear();
+  dEtaSCAtCal.clear();
+  dPhiSCAtVtx.clear();
+  dPhiSCAtCal.clear();
+  trackFbrem.clear();
+  scFbrem.clear();
   PTrackOut.clear();
   PtTrackOut.clear();
   PxTrackOut.clear();
@@ -279,38 +309,6 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   bool matchingMotherID;
   int mcid=0;
 
-  // get list of MC particles to study
-  std::vector<reco::GenParticle*> genList;
-  for (unsigned int i=0; i<matchingMotherIDs_.size(); i++)
-  {
-    // get the mom at status=3
-    reco::GenParticle* momPtr;
-    for (reco::GenParticleCollection::const_iterator mcIter=genParticles->begin();
-         mcIter != genParticles->end(); mcIter++ )
-    {
-      if (mcIter->pdgId()==matchingMotherIDs_.at(i) &&
-          mcIter->status()==3)
-      { momPtr = mcIter; }
-    }
-
-    size_t ndau = momPtr->numberOfDaughters();
-    for( size_t j = 0; j < ndau; ++j )
-    {
-      
-      if ( momPtr->daughter(j)->status()==1) 
-      {
-        int pdgid = momPtr->daughter(j)->pdgId();
-        if (abs(pdgid)==11)
-        {
-
-        }
-      }
-      
-    }
-   
-    
-  }
-
   // print
   if (printMCtable_)  
       std::cout << " MC info: id | pdgid | status | charge | mass | energy | p | pt | px | py | pz | vx | vy | vz |" << std::endl;
@@ -355,7 +353,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
     
     // only use gen status ==1
-    if (tstatus!=1) continue;
+    //if (tstatus!=1) continue;
 
     // only select electrons
     if (abs(tpdgid)!=11) continue;
@@ -389,6 +387,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     // looking for the best matching gsf electron
     bool okGsfFound = false;
     double deltaR_min = 999999.;
+    double gsfOkRatio = 999999.;
 
     // find best matched electron
     reco::GsfElectron bestGsfElectron;
@@ -405,13 +404,20 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
           if (deltaR<deltaR_min) 
           {
             deltaR_min = deltaR;
+          //  bestGsfElectron=*gsfIter;
+          //  okGsfFound = true;
+          }
+          double tmpGsfRatio = gsfIter->p()/mcIter->p();
+          if ( std::abs(tmpGsfRatio-1) < std::abs(gsfOkRatio-1) ) {
+            gsfOkRatio = tmpGsfRatio;
             bestGsfElectron=*gsfIter;
             okGsfFound = true;
           }
         }
       }
     } // loop over rec ele to look for the best one    
-   
+  
+
     // only book truth if gsf is not found
     if (!okGsfFound) 
     {
@@ -434,6 +440,21 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       Phi.push_back(-100);
       Charge.push_back(-100);
       PDG.push_back(-100);
+      Classify.push_back(-100);
+      HoE.push_back(-100);
+      HoE1.push_back(-100);
+      HoE2.push_back(-100);
+      ecalDriven.push_back(false);
+      sigmaEtaEta.push_back(-100);
+      sigmaIetaIeta.push_back(-100);
+      sigmaIphiIphi.push_back(-100);
+      r9.push_back(-100);
+      dEtaSCAtVtx.push_back(-100);
+      dEtaSCAtCal.push_back(-100);
+      dPhiSCAtVtx.push_back(-100);
+      dPhiSCAtCal.push_back(-100);
+      trackFbrem.push_back(-100);
+      scFbrem.push_back(-100);
       isEB.push_back(false);
       isEE.push_back(false);
       PTrackOut.push_back(-100);
@@ -485,7 +506,21 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     isEE.push_back(bestGsfElectron.isEE()); 
     Charge.push_back((double)bestGsfElectron.charge());
     PDG.push_back(bestGsfElectron.pdgId());
-
+    Classify.push_back(bestGsfElectron.classification());
+    HoE.push_back(bestGsfElectron.hcalOverEcal());
+    HoE1.push_back(bestGsfElectron.hcalDepth1OverEcal());
+    HoE2.push_back(bestGsfElectron.hcalDepth2OverEcal());
+    ecalDriven.push_back(bestGsfElectron.ecalDrivenSeed());
+    sigmaEtaEta.push_back(bestGsfElectron.sigmaEtaEta());
+    sigmaIetaIeta.push_back(bestGsfElectron.sigmaIetaIeta());
+    sigmaIphiIphi.push_back(bestGsfElectron.sigmaIphiIphi());
+    r9.push_back(bestGsfElectron.r9());
+    dEtaSCAtVtx.push_back(bestGsfElectron.deltaEtaSuperClusterTrackAtVtx());
+    dEtaSCAtCal.push_back(bestGsfElectron.deltaEtaEleClusterTrackAtCalo());
+    dPhiSCAtVtx.push_back(bestGsfElectron.deltaPhiSuperClusterTrackAtVtx());
+    dPhiSCAtCal.push_back(bestGsfElectron.deltaPhiEleClusterTrackAtCalo());
+    trackFbrem.push_back(bestGsfElectron.trackFbrem());
+    scFbrem.push_back(bestGsfElectron.superClusterFbrem());
 
     // superCluster
     reco::SuperClusterRef superCluster = bestGsfElectron.superCluster();
@@ -644,8 +679,8 @@ double ShashlikTupleDumper::matchDRV2(reco::GenParticleCollection::const_iterato
   double mcEta = pmc->eta();
   double mcPhi = pmc->phi();
 
-  double pEta = prec->trackMomentumAtVtx().eta(); 
-  double pPhi = prec->trackMomentumAtVtx().phi(); 
+  double pEta = prec->eta(); 
+  double pPhi = prec->phi(); 
 
   double deta = mcEta - pEta;
   double dphi = TVector2::Phi_mpi_pi(mcPhi-pPhi);
