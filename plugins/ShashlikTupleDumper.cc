@@ -361,8 +361,8 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     // select requested mother matching gen particle
     // always include single particle with no mother
     const reco::Candidate * mother = mcIter->mother();
-    //matchingMotherID=false;
-    matchingMotherID=true;
+    matchingMotherID=false;
+    //matchingMotherID=true;
     for (unsigned int i=0; i<matchingMotherIDs_.size(); i++)
     {   
       if ((mother == 0) || ((mother != 0) &&  mother->pdgId() == matchingMotherIDs_[i]) ) 
