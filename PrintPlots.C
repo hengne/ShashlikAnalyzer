@@ -1,13 +1,22 @@
 {
   char* tag =
-   "TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_ph1pu140"
-   //"TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_pu0_v1" 
-   //"TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_pu140_v1" 
+   "TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_ph1pu140_v4"
+   //"output"
+   //"TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_ph1pu140_v2"
+   //"TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_pu0_v2" 
+   //"TPZeeSHPU140SLHC23p1.ShashlikTupleDumper_pu140_v2" 
    //  "ShashlikTupleDumper_RelValSingleElectronPt35Extended_DES23_62_V1_UPG2023SHNoTaper-v1"
    //  "ShashlikTupleDumper_RelValZEE_14TeV_GEN-SIM-RECO_DES23_62_V1_UPG2023SHNoTaper-v1"
    //   "Ntuple_DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola_test3"
    //   "Ntuple_DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola_withHits"
   ;
+
+  char* trueEB1 = "abs(EtaTrue[0])<1.479";
+  char* trueEB2 = "abs(EtaTrue[1])<1.479";
+  char* trueEE1 = "abs(EtaTrue[0])>1.48&&abs(EtaTrue[0])<3.0";
+  char* trueEE2 = "abs(EtaTrue[1])>1.48&&abs(EtaTrue[1])<3.0";
+  //char* trueEE1 = "abs(EtaTrue[0])>1.48&&abs(EtaTrue[0])<2.5";
+  //char* trueEE2 = "abs(EtaTrue[1])>1.48&&abs(EtaTrue[1])<2.5";
 
   char name[1000];
   sprintf(name, "%s.root", tag);
@@ -15,9 +24,26 @@
   TTree* tree = (TTree*)file->Get("tree");
   sprintf(name, "plots_%s.root", tag);
   TFile* fileout = TFile::Open(name, "RECREATE");
-  gROOT->ProcessLine(".L tdrStyle.C");
-  tdrstyle();
+  gROOT->ProcessLine(".L tdrstyle.C");
+  //tdrstyle();
+  setTDRStyle();
   //gROOT->SetStyle("Plain");
+
+  gROOT->LoadMacro("CMS_lumi_v2.C");
+  int iPeriod = 14;    // 1=7TeV, 2=8TeV, 3=7+8TeV, 7=7+8+13TeV, 14= PU=140,14TeV 
+
+  // second parameter in example_plot is iPos, which drives the position of the CMS logo in the plot
+  // iPos=11 : top-left, left-aligned
+  // iPos=33 : top-right, right-aligned
+  // iPos=22 : center, centered
+  // mode generally : 
+  //   iPos = 10*(alignement 1/2/3) + position (1/2/3 = left/center/right)
+  int iPos=11;
+
+  tree->SetAlias("trueEB1", trueEB1);
+  tree->SetAlias("trueEB2", trueEB2);
+  tree->SetAlias("trueEE1", trueEE1);
+  tree->SetAlias("trueEE2", trueEE2);
 
   TH1D* h1;
   TH1D* h2;
@@ -54,9 +80,10 @@
 
   TLegend* lg;
 
-  TCanvas* plots = new TCanvas("plots", "plots", 400, 400);
+  TCanvas* plots = new TCanvas("plots", "plots", 600, 560);
   sprintf(name, "plots_%s.ps[", tag);
   plots->Print(name);
+
 
 
 
@@ -143,6 +170,10 @@
   h3->Draw("hist same");
   h4->Draw("hist same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 33 );
+  plots->Update();
+  plots->RedrawAxis();
+  plots->GetFrame()->Draw();
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -233,6 +264,7 @@
   h3->Draw("hist same");
   h4->Draw("hist same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 33 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -273,9 +305,10 @@
   lg->AddEntry(h2, "EE", "pl");
 
   plots->Clear();
-  h1->Draw();
-  h2->Draw("same");
+  h2->Draw();
+  h1->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -315,6 +348,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -344,7 +378,7 @@
   h1->GetXaxis()->SetTitle("Eta True");
   h2->GetXaxis()->SetTitle("Eta True");
 
-  lg = new TLegend(0.8,0.8,0.95,0.95);
+  lg = new TLegend(0.4,0.3,0.55,0.5);
   lg->SetName("lg_EtaTrue");
   lg->AddEntry(h1, "EB", "pl");
   lg->AddEntry(h2, "EE", "pl");
@@ -353,6 +387,421 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+
+  // Eff vs Eta PT
+  h2d1 = new TH2D("h2d1", "h2d1", 60, -3, 3, 50, 0, 100);
+  h2d2 = new TH2D("h2d2", "h2d2", 60, -3, 3, 50, 0, 100);
+  h2d1->Sumw2();
+  h2d2->Sumw2();
+  tree->Draw("PtTrue[0]:EtaTrue[0]>>h2d1", "");
+  tree->Draw("PtTrue[1]:EtaTrue[1]>>+h2d1", "");
+  tree->Draw("PtTrue[0]:EtaTrue[0]>>h2d2", "FoundGsf[0]");
+  tree->Draw("PtTrue[1]:EtaTrue[1]>>+h2d2", "FoundGsf[1]");
+  h2d1->SetName("EleEffPTEtaTrueAll");
+  h2d2->SetName("EleEffPTEtaTruePass");
+  h2d2->Divide(h2d1);
+  h2d1->SetTitle("Electron Gsf Finding Efficiency vs True Eta and True PT");
+  h2d2->SetTitle("Electron Gsf Finding Efficiency vs True Eta and True PT");
+  h2d1->GetXaxis()->SetTitle("Eta True");
+  h2d2->GetXaxis()->SetTitle("Eta True");
+  h2d1->GetYaxis()->SetTitle("PT True");
+  h2d2->GetYaxis()->SetTitle("PT True");
+  h2d1->GetZaxis()->SetTitle("Eff.");
+  h2d2->GetZaxis()->SetTitle("Eff.");
+  
+  h2d2->GetZaxis()->SetRangeUser(0.0,1.0);
+
+  plots->Clear();
+  h2d2->Draw("colz");
+  CMS_lumi_v2( plots, iPeriod, 11 );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h2d1->Write();
+  h2d2->Write();
+
+
+
+  // Eff vs Eta
+  h1 = new TH1D("h1", "h1", 120, -3, 3);
+  h2 = new TH1D("h2", "h2", 120, -3, 3);
+  h3 = new TH1D("h3", "h3", 120, -3, 3);
+  h4 = new TH1D("h4", "h4", 120, -3, 3);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  tree->Draw("EtaTrue[0]>>h1", "abs(EtaTrue[0])<1.479");
+  tree->Draw("EtaTrue[1]>>+h1", "abs(EtaTrue[1])<1.479");
+  tree->Draw("EtaTrue[0]>>h2", "abs(EtaTrue[0])>1.479");
+  tree->Draw("EtaTrue[1]>>+h2", "abs(EtaTrue[1])>1.479");
+  tree->Draw("EtaTrue[0]>>h3", "abs(EtaTrue[0])<1.479&&FoundGsf[0]");
+  tree->Draw("EtaTrue[1]>>+h3", "abs(EtaTrue[1])<1.479&&FoundGsf[1]");
+  tree->Draw("EtaTrue[0]>>h4", "abs(EtaTrue[0])>1.479&&FoundGsf[0]");
+  tree->Draw("EtaTrue[1]>>+h4", "abs(EtaTrue[1])>1.479&&FoundGsf[1]");
+  h1->SetName("EleEffEtaTrueAllEB");
+  h2->SetName("EleEffEtaTrueAllEE");
+  h3->SetName("EleEffEtaTruePassEB");
+  h4->SetName("EleEffEtaTruePassEE");
+  h3->Divide(h1);
+  h4->Divide(h2);
+  h3->SetTitle("Electron Gsf Finding Efficiency vs True Eta");
+  h4->SetTitle("Electron Gsf Finding Efficiency vs True Eta");
+  h3->SetMarkerStyle(20);
+  h4->SetMarkerStyle(20);
+  h3->SetMarkerColor(2);
+  h4->SetMarkerColor(4);
+  h3->SetLineColor(2);
+  h4->SetLineColor(4);
+  //h3->SetFillColor(2);
+  //h4->SetFillColor(4);
+  //h3->SetFillStyle(3006);
+  //h4->SetFillStyle(3007);
+
+  h3->GetXaxis()->SetTitle("Eta True");
+  h4->GetXaxis()->SetTitle("Eta True");
+  h3->GetYaxis()->SetRangeUser(0.0, 1.2);
+  h4->GetYaxis()->SetRangeUser(0.0, 1.2);
+
+  lg = new TLegend(0.45,0.3,0.65,0.5);
+  lg->SetName("lg_EffEtaTrue");
+  lg->AddEntry(h3, "EB", "pl");
+  lg->AddEntry(h4, "EE", "pl");
+
+  plots->Clear();
+  h3->Draw("hist");
+  h4->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+  lg->Write();
+
+
+  // Eff vs Eta pT>25
+  h1 = new TH1D("h1", "h1", 120, -3, 3);
+  h2 = new TH1D("h2", "h2", 120, -3, 3);
+  h3 = new TH1D("h3", "h3", 120, -3, 3);
+  h4 = new TH1D("h4", "h4", 120, -3, 3);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  tree->Draw("EtaTrue[0]>>h1", "PtTrue[0]>25&&abs(EtaTrue[0])<1.479");
+  tree->Draw("EtaTrue[1]>>+h1", "PtTrue[1]>25&&abs(EtaTrue[1])<1.479");
+  tree->Draw("EtaTrue[0]>>h2", "PtTrue[0]>25&&abs(EtaTrue[0])>1.479");
+  tree->Draw("EtaTrue[1]>>+h2", "PtTrue[1]>25&&abs(EtaTrue[1])>1.479");
+  tree->Draw("EtaTrue[0]>>h3", "PtTrue[0]>25&&abs(EtaTrue[0])<1.479&&FoundGsf[0]");
+  tree->Draw("EtaTrue[1]>>+h3", "PtTrue[1]>25&&abs(EtaTrue[1])<1.479&&FoundGsf[1]");
+  tree->Draw("EtaTrue[0]>>h4", "PtTrue[0]>25&&abs(EtaTrue[0])>1.479&&FoundGsf[0]");
+  tree->Draw("EtaTrue[1]>>+h4", "PtTrue[1]>25&&abs(EtaTrue[1])>1.479&&FoundGsf[1]");
+  h1->SetName("EleEffEtaTrueAllPTgt25EB");
+  h2->SetName("EleEffEtaTrueAllPTgt25EE");
+  h3->SetName("EleEffEtaTruePassPTgt25EB");
+  h4->SetName("EleEffEtaTruePassPTgt25EE");
+  h3->Divide(h1);
+  h4->Divide(h2);
+  h3->SetTitle("Electron Gsf Finding Efficiency vs True Eta, pT(e)>25GeV");
+  h4->SetTitle("Electron Gsf Finding Efficiency vs True Eta, pT(e)>25GeV");
+  h3->SetMarkerStyle(20);
+  h4->SetMarkerStyle(20);
+  h3->SetMarkerColor(2);
+  h4->SetMarkerColor(4);
+  h3->SetLineColor(2);
+  h4->SetLineColor(4);
+  h3->GetXaxis()->SetTitle("Eta True");
+  h4->GetXaxis()->SetTitle("Eta True");
+  h3->GetYaxis()->SetRangeUser(0., 1.2);
+  h4->GetYaxis()->SetRangeUser(0., 1.2);
+
+  lg = new TLegend(0.45,0.3,0.65,0.5);
+  lg->SetName("lg_EffEtaTruePTgt25");
+  lg->AddEntry(h3, "EB", "pl");
+  lg->AddEntry(h4, "EE", "pl");
+
+  plots->Clear();
+  h3->Draw("hist");
+  h4->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+  lg->Write();
+
+  // Eff vs Eta pT<25
+  h1 = new TH1D("h1", "h1", 120, -3, 3);
+  h2 = new TH1D("h2", "h2", 120, -3, 3);
+  h3 = new TH1D("h3", "h3", 120, -3, 3);
+  h4 = new TH1D("h4", "h4", 120, -3, 3);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  tree->Draw("EtaTrue[0]>>h1", "PtTrue[0]<25&&abs(EtaTrue[0])<1.479");
+  tree->Draw("EtaTrue[1]>>+h1", "PtTrue[1]<25&&abs(EtaTrue[1])<1.479");
+  tree->Draw("EtaTrue[0]>>h2", "PtTrue[0]<25&&abs(EtaTrue[0])>1.479");
+  tree->Draw("EtaTrue[1]>>+h2", "PtTrue[1]<25&&abs(EtaTrue[1])>1.479");
+  tree->Draw("EtaTrue[0]>>h3", "PtTrue[0]<25&&abs(EtaTrue[0])<1.479&&FoundGsf[0]");
+  tree->Draw("EtaTrue[1]>>+h3", "PtTrue[1]<25&&abs(EtaTrue[1])<1.479&&FoundGsf[1]");
+  tree->Draw("EtaTrue[0]>>h4", "PtTrue[0]<25&&abs(EtaTrue[0])>1.479&&FoundGsf[0]");
+  tree->Draw("EtaTrue[1]>>+h4", "PtTrue[1]<25&&abs(EtaTrue[1])>1.479&&FoundGsf[1]");
+  h1->SetName("EleEffEtaTrueAllPTlt25EB");
+  h2->SetName("EleEffEtaTrueAllPTlt25EE");
+  h3->SetName("EleEffEtaTruePassPTlt25EB");
+  h4->SetName("EleEffEtaTruePassPTlt25EE");
+  h3->Divide(h1);
+  h4->Divide(h2);
+  h3->SetTitle("Electron Gsf Finding Efficiency vs True Eta, pT(e)<25GeV");
+  h4->SetTitle("Electron Gsf Finding Efficiency vs True Eta, pT(e)<25GeV");
+  h3->SetMarkerStyle(20);
+  h4->SetMarkerStyle(20);
+  h3->SetMarkerColor(2);
+  h4->SetMarkerColor(4);
+  h3->SetLineColor(2);
+  h4->SetLineColor(4);
+  h3->GetXaxis()->SetTitle("Eta True");
+  h4->GetXaxis()->SetTitle("Eta True");
+  h3->GetYaxis()->SetRangeUser(0., 1.2);
+  h4->GetYaxis()->SetRangeUser(0., 1.2);
+
+  lg = new TLegend(0.45,0.3,0.65,0.5);
+  lg->SetName("lg_EffEtaTruePTlt25");
+  lg->AddEntry(h3, "EB", "pl");
+  lg->AddEntry(h4, "EE", "pl");
+
+  plots->Clear();
+  h3->Draw("hist");
+  h4->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+  lg->Write();
+
+
+  // Eff vs Eta with SC
+  h1 = new TH1D("h1", "h1", 120, -3, 3);
+  h2 = new TH1D("h2", "h2", 120, -3, 3);
+  h3 = new TH1D("h3", "h3", 120, -3, 3);
+  h4 = new TH1D("h4", "h4", 120, -3, 3);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  tree->Draw("EtaTrue>>h1", "abs(EtaTrue)<1.479");
+  tree->Draw("EtaTrue>>h2", "abs(EtaTrue)>1.479");
+  tree->Draw("EtaTrue>>h3", "abs(EtaTrue)<1.479&&(FoundGsf||FoundSc)");
+  tree->Draw("EtaTrue>>h4", "abs(EtaTrue)>1.479&&(FoundGsf||FoundSc)");
+  h1->SetName("EleScEffEtaTrueAllEB");
+  h2->SetName("EleScEffEtaTrueAllEE");
+  h3->SetName("EleScEffEtaTruePassEB");
+  h4->SetName("EleScEffEtaTruePassEE");
+  h3->Divide(h1);
+  h4->Divide(h2);
+  h3->SetTitle("Electron SC Finding Efficiency vs True Eta");
+  h4->SetTitle("Electron SC Finding Efficiency vs True Eta");
+  h3->SetMarkerStyle(20);
+  h4->SetMarkerStyle(20);
+  h3->SetMarkerColor(2);
+  h4->SetMarkerColor(4);
+  h3->SetLineColor(2);
+  h4->SetLineColor(4);
+  h3->GetXaxis()->SetTitle("Eta True");
+  h4->GetXaxis()->SetTitle("Eta True");
+  h3->GetYaxis()->SetRangeUser(0., 1.2);
+  h4->GetYaxis()->SetRangeUser(0., 1.2);
+
+  lg = new TLegend(0.45,0.3,0.65,0.5);
+  lg->SetName("lg_EffScEtaTrue");
+  lg->AddEntry(h3, "EB", "pl");
+  lg->AddEntry(h4, "EE", "pl");
+
+  plots->Clear();
+  h3->Draw("hist");
+  h4->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+  lg->Write();
+
+  // Eff vs Eta with SC, pT>25GeV
+  h1 = new TH1D("h1", "h1", 120, -3, 3);
+  h2 = new TH1D("h2", "h2", 120, -3, 3);
+  h3 = new TH1D("h3", "h3", 120, -3, 3);
+  h4 = new TH1D("h4", "h4", 120, -3, 3);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  tree->Draw("EtaTrue>>h1", "PtTrue>25&&abs(EtaTrue)<1.479");
+  tree->Draw("EtaTrue>>h2", "PtTrue>25&&abs(EtaTrue)>1.479");
+  tree->Draw("EtaTrue>>h3", "PtTrue>25&&abs(EtaTrue)<1.479&&(FoundGsf||FoundSc)");
+  tree->Draw("EtaTrue>>h4", "PtTrue>25&&abs(EtaTrue)>1.479&&(FoundGsf||FoundSc)");
+  h1->SetName("EleScEffEtaTrueAllPTgt25EB");
+  h2->SetName("EleScEffEtaTrueAllPTgt25EE");
+  h3->SetName("EleScEffEtaTruePassPTgt25EB");
+  h4->SetName("EleScEffEtaTruePassPTgt25EE");
+  h3->Divide(h1);
+  h4->Divide(h2);
+  h3->SetTitle("Electron SC Finding Efficiency vs True Eta, pT>25GeV");
+  h4->SetTitle("Electron SC Finding Efficiency vs True Eta, pT>25GeV");
+  h3->SetMarkerStyle(20);
+  h4->SetMarkerStyle(20);
+  h3->SetMarkerColor(2);
+  h4->SetMarkerColor(4);
+  h3->SetLineColor(2);
+  h4->SetLineColor(4);
+  h3->GetXaxis()->SetTitle("Eta True");
+  h4->GetXaxis()->SetTitle("Eta True");
+  h3->GetYaxis()->SetRangeUser(0., 1.2);
+  h4->GetYaxis()->SetRangeUser(0., 1.2);
+
+  lg = new TLegend(0.45,0.3,0.65,0.5);
+  lg->SetName("lg_EffScEtaTruePTgt25");
+  lg->AddEntry(h3, "EB", "pl");
+  lg->AddEntry(h4, "EE", "pl");
+
+  plots->Clear();
+  h3->Draw("hist");
+  h4->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+  lg->Write();
+
+  // Eff vs Eta with SC, pT<25GeV
+  h1 = new TH1D("h1", "h1", 120, -3, 3);
+  h2 = new TH1D("h2", "h2", 120, -3, 3);
+  h3 = new TH1D("h3", "h3", 120, -3, 3);
+  h4 = new TH1D("h4", "h4", 120, -3, 3);
+  h1->Sumw2();
+  h2->Sumw2();
+  h3->Sumw2();
+  h4->Sumw2();
+  tree->Draw("EtaTrue>>h1", "PtTrue<25&&abs(EtaTrue)<1.479");
+  tree->Draw("EtaTrue>>h2", "PtTrue<25&&abs(EtaTrue)>1.479");
+  tree->Draw("EtaTrue>>h3", "PtTrue<25&&abs(EtaTrue)<1.479&&(FoundGsf||FoundSc)");
+  tree->Draw("EtaTrue>>h4", "PtTrue<25&&abs(EtaTrue)>1.479&&(FoundGsf||FoundSc)");
+  h1->SetName("EleScEffEtaTrueAllPTlt25EB");
+  h2->SetName("EleScEffEtaTrueAllPTlt25EE");
+  h3->SetName("EleScEffEtaTruePassPTlt25EB");
+  h4->SetName("EleScEffEtaTruePassPTlt25EE");
+  h3->Divide(h1);
+  h4->Divide(h2);
+  h3->SetTitle("Electron SC Finding Efficiency vs True Eta, pT<25GeV");
+  h4->SetTitle("Electron SC Finding Efficiency vs True Eta, pT<25GeV");
+  h3->SetMarkerStyle(20);
+  h4->SetMarkerStyle(20);
+  h3->SetMarkerColor(2);
+  h4->SetMarkerColor(4);
+  h3->SetLineColor(2);
+  h4->SetLineColor(4);
+  h3->GetXaxis()->SetTitle("Eta True");
+  h4->GetXaxis()->SetTitle("Eta True");
+  h3->GetYaxis()->SetRangeUser(0., 1.2);
+  h4->GetYaxis()->SetRangeUser(0., 1.2);
+
+  lg = new TLegend(0.45,0.3,0.65,0.5);
+  lg->SetName("lg_EffScEtaTruePTlt25");
+  lg->AddEntry(h3, "EB", "pl");
+  lg->AddEntry(h4, "EE", "pl");
+
+  plots->Clear();
+  h3->Draw("hist");
+  h4->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  h3->Write();
+  h4->Write();
+  lg->Write();
+
+  // Esc-Etrue EE compare SC and gsf match 
+  h1 = new TH1D("h1", "h1", 100, -50, 50);
+  h2 = new TH1D("h2", "h2", 100, -50, 50);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("ESc-ETrue>>h1", "isEE&&FoundGsf");
+  tree->Draw("ESc-ETrue>>h2", "isEE&&FoundSc");
+  h1->SetName("EleEScmEtrueFoundGsfEE");
+  h2->SetName("EleEScmEtrueFoundScEE");
+  h1->SetTitle("Esc-Etrue, EE, found gsfElectron");
+  h2->SetTitle("Esc-Etrue, EE, found SuperCluster");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("E_{SC}-E_{true} (GeV)");
+  h2->GetXaxis()->SetTitle("E_{SC}-E_{true} (GeV)");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_EleEScmEtrue");
+  lg->AddEntry(h1, "EE match GSF", "pl");
+  lg->AddEntry(h2, "EE match SC", "pl");
+
+  plots->Clear();
+  h1->Draw();
+  h2->Draw("same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -363,53 +812,7 @@
   lg->Write();
 
 
-  // Eff vs Eta
-  h1 = new TH1D("h1", "h1", 100, -5, 5);
-  h2 = new TH1D("h2", "h2", 100, -5, 5);
-  h3 = new TH1D("h3", "h3", 100, -5, 5);
-  h4 = new TH1D("h4", "h4", 100, -5, 5);
-  h1->Sumw2();
-  h2->Sumw2();
-  h3->Sumw2();
-  h4->Sumw2();
-  tree->Draw("EtaTrue>>h1", "abs(EtaTrue)<1.5");
-  tree->Draw("EtaTrue>>h2", "abs(EtaTrue)>1.5");
-  tree->Draw("EtaTrue>>h3", "abs(EtaTrue)<1.5&&FoundGsf");
-  tree->Draw("EtaTrue>>h4", "abs(EtaTrue)>1.5&&FoundGsf");
-  h3->Divide(h1);
-  h4->Divide(h2);
-  h3->SetName("EleEffEtaTrueEB");
-  h4->SetName("EleEffEtaTrueEE");
-  h3->SetTitle("Electron Gsf Finding Efficiency vs True Eta");
-  h4->SetTitle("Electron Gsf Finding Efficiency vs True Eta");
-  h3->SetMarkerStyle(20);
-  h3->SetMarkerColor(2);
-  h3->SetLineColor(2);
-  h4->SetMarkerStyle(20);
-  h4->SetMarkerColor(4);
-  h4->SetLineColor(4);
-  h3->GetXaxis()->SetTitle("Eta True");
-  h4->GetXaxis()->SetTitle("Eta True");
-  //h3->GetYaxis()->SetRangeUser(0.9, 1.1);
-  //h4->GetYaxis()->SetRangeUser(0.9, 1.1);
 
-  lg = new TLegend(0.8,0.8,0.95,0.95);
-  lg->SetName("lg_EffEtaTrue");
-  lg->AddEntry(h3, "EB", "pl");
-  lg->AddEntry(h4, "EE", "pl");
-
-  plots->Clear();
-  h3->Draw();
-  h4->Draw("same");
-  lg->Draw();
-  sprintf(name, "plots_%s.ps", tag);
-  plots->Print(name);
-  plots->Clear();
-
-  fileout->cd();
-  h3->Write();
-  h4->Write();
-  lg->Write();  
 
   // Eff vs PT
   h1 = new TH1D("h1", "h1", 100, 0, 100);
@@ -420,14 +823,20 @@
   h2->Sumw2();
   h3->Sumw2();
   h4->Sumw2();
-  tree->Draw("PtTrue>>h1", "abs(EtaTrue)<1.479");
-  tree->Draw("PtTrue>>h2", "abs(EtaTrue)>1.479");
-  tree->Draw("PtTrue>>h3", "abs(EtaTrue)<1.479&&FoundGsf");
-  tree->Draw("PtTrue>>h4", "abs(EtaTrue)>1.479&&FoundGsf");
+  tree->Draw("PtTrue[0]>>h1", "trueEB1");
+  tree->Draw("PtTrue[1]>>+h1", "trueEB2");
+  tree->Draw("PtTrue[0]>>h2", "trueEE1");
+  tree->Draw("PtTrue[1]>>+h2", "trueEE2");
+  tree->Draw("PtTrue[0]>>h3", "trueEB1&&FoundGsf[0]");
+  tree->Draw("PtTrue[1]>>+h3", "trueEB2&&FoundGsf[1]");
+  tree->Draw("PtTrue[0]>>h4", "trueEE1&&FoundGsf[0]");
+  tree->Draw("PtTrue[1]>>+h4", "trueEE2&&FoundGsf[1]");
+  h1->SetName("EleEffPtTrueAllEB");
+  h2->SetName("EleEffPtTrueAllEE");
+  h3->SetName("EleEffPtTruePassEB");
+  h4->SetName("EleEffPtTruePassEE");
   h3->Divide(h1);
   h4->Divide(h2);
-  h3->SetName("EleEffPtTrueEB");
-  h4->SetName("EleEffPtTrueEE");
   h3->SetTitle("Electron Gsf Finding Efficiency vs True Pt");
   h4->SetTitle("Electron Gsf Finding Efficiency vs True Pt");
   h3->SetMarkerStyle(20);
@@ -450,11 +859,14 @@
   h3->Draw();
   h4->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
 
   fileout->cd();
+  h1->Write();
+  h2->Write();
   h3->Write();
   h4->Write();
   lg->Write();
@@ -489,6 +901,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -498,6 +911,382 @@
   h2->Write();
   lg->Write();
 
+
+  // HoE
+  h1 = new TH1D("h1", "h1", 100, 0.0, 0.5);
+  h2 = new TH1D("h2", "h2", 100, 0.0, 0.5);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("HoE>>h1", "isEB&&FoundGsf");
+  tree->Draw("HoE>>h2", "isEE&&FoundGsf");
+  h1->SetName("EleHoEEB");
+  h2->SetName("EleHoEEE");
+  h1->SetTitle("H/E");
+  h2->SetTitle("H/E");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("H/E");
+  h2->GetXaxis()->SetTitle("H/E");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_EleHoE");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+
+  plots->Clear();
+  plots->SetLogy(1);
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->SetLogy(0);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+ 
+  // HoE pT>25
+  h1 = new TH1D("h1", "h1", 100, 0.0, 0.5);
+  h2 = new TH1D("h2", "h2", 100, 0.0, 0.5);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("HoE>>h1", "isEB&&FoundGsf&&PtTrue>25");
+  tree->Draw("HoE>>h2", "isEE&&FoundGsf&&PtTrue>25");
+  h1->SetName("EleHoEPtGt25EB");
+  h2->SetName("EleHoEPtGt25EE");
+  h1->SetTitle("H/E pT(e)>25GeV");
+  h2->SetTitle("H/E pT(e)>25GeV");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("H/E");
+  h2->GetXaxis()->SetTitle("H/E");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+  
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_EleHoEPtGt25");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+  
+  plots->Clear();
+  plots->SetLogy(1);
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->SetLogy(0);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+
+  // HoE pT<25
+  h1 = new TH1D("h1", "h1", 100, 0.0, 0.5);
+  h2 = new TH1D("h2", "h2", 100, 0.0, 0.5);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("HoE>>h1", "isEB&&FoundGsf&&PtTrue<25");
+  tree->Draw("HoE>>h2", "isEE&&FoundGsf&&PtTrue<25");
+  h1->SetName("EleHoEPtLt25EB");
+  h2->SetName("EleHoEPtLt25EE");
+  h1->SetTitle("H/E pT(e)<25GeV");
+  h2->SetTitle("H/E pT(e)<25GeV");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("H/E");
+  h2->GetXaxis()->SetTitle("H/E");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_EleHoEPtLt25");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+
+  plots->Clear();
+  plots->SetLogy(1);
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->SetLogy(0);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+
+  // dEtaSCAtCal
+  h1 = new TH1D("h1", "h1", 100, -0.02, 0.02);
+  h2 = new TH1D("h2", "h2", 100, -0.02, 0.02);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("dEtaSCAtCal>>h1", "isEB&&FoundGsf");
+  tree->Draw("dEtaSCAtCal>>h2", "isEE&&FoundGsf");
+  h1->SetName("EledEtaSCAtCalEB");
+  h2->SetName("EledEtaSCAtCalEE");
+  h1->SetTitle("dEtaSCAtCal");
+  h2->SetTitle("dEtaSCAtCal");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("#Delta#eta");
+  h2->GetXaxis()->SetTitle("#Delta#eta");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_EledEtaSCAtCal");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+
+  plots->Clear();
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+ 
+  // dPhiSCAtCal
+  h1 = new TH1D("h1", "h1", 100, -0.15, 0.15);
+  h2 = new TH1D("h2", "h2", 100, -0.15, 0.15);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("dPhiSCAtCal>>h1", "isEB&&FoundGsf");
+  tree->Draw("dPhiSCAtCal>>h2", "isEE&&FoundGsf");
+  h1->SetName("EledPhiSCAtCalEB");
+  h2->SetName("EledPhiSCAtCalEE");
+  h1->SetTitle("dPhiSCAtCal");
+  h2->SetTitle("dPhiSCAtCal");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("#Delta#phi");
+  h2->GetXaxis()->SetTitle("#Delta#phi");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_EledPhiSCAtCal");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+
+  plots->Clear();
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+
+  // 1/E-1/P
+  h1 = new TH1D("h1", "h1", 100, -0.15, 0.15);
+  h2 = new TH1D("h2", "h2", 100, -0.15, 0.15);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("1.0/ESc-1.0/PTrackIn>>h1", "isEB&&FoundGsf");
+  tree->Draw("1.0/ESc-1.0/PTrackIn>>h2", "isEE&&FoundGsf");
+  h1->SetName("Ele1oEminus1oPEB");
+  h2->SetName("Ele1oEminus1oPEE");
+  h1->SetTitle("1/E-1/P");
+  h2->SetTitle("1/E-1/P");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("1/E_{SC}-1/p");
+  h2->GetXaxis()->SetTitle("1/E_{SC}-1/p");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_Ele1oEminus1oP");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+
+  plots->Clear();
+  h2->Draw("hist");
+  h1->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+
+
+  // sigmaEtaEta
+  h1 = new TH1D("h1", "h1", 100, 0, 0.1);
+  h2 = new TH1D("h2", "h2", 100, 0, 0.1);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("sigmaEtaEta>>h1", "isEB&&FoundGsf");
+  tree->Draw("sigmaEtaEta>>h2", "isEE&&FoundGsf");
+  h1->SetName("ElesigmaEtaEtaEB");
+  h2->SetName("ElesigmaEtaEtaEE");
+  h1->SetTitle("sigmaEtaEta");
+  h2->SetTitle("sigmaEtaEta");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("#sigma_{#eta#eta}");
+  h2->GetXaxis()->SetTitle("#sigma_{#eta#eta}");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_ElesigmaEtaEta");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+
+  plots->Clear();
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+
+  // sigmaIetaIeta
+  h1 = new TH1D("h1", "h1", 100, 0, 0.1);
+  h2 = new TH1D("h2", "h2", 100, 0, 0.1);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("sigmaIetaIeta>>h1", "isEB&&FoundGsf");
+  tree->Draw("sigmaIetaIeta>>h2", "isEE&&FoundGsf");
+  h1->SetName("ElesigmaIetaIetaEB");
+  h2->SetName("ElesigmaIetaIetaEE");
+  h1->SetTitle("sigmaIetaIeta");
+  h2->SetTitle("sigmaIetaIeta");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("#sigma_{i#eta,i#eta}");
+  h2->GetXaxis()->SetTitle("#sigma_{i#eta,i#eta}");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+  
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_ElesigmaIetaIeta");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+  
+  plots->Clear();
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+  
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
+
+  // sigmaIphiIphi
+  h1 = new TH1D("h1", "h1", 100, 0, 0.1);
+  h2 = new TH1D("h2", "h2", 100, 0, 0.1);
+  h1->Sumw2();
+  h2->Sumw2();
+  tree->Draw("sigmaIphiIphi>>h1", "isEB&&FoundGsf");
+  tree->Draw("sigmaIphiIphi>>h2", "isEE&&FoundGsf");
+  h1->SetName("ElesigmaIphiIphiEB");
+  h2->SetName("ElesigmaIphiIphiEE");
+  h1->SetTitle("sigmaIphiIphi");
+  h2->SetTitle("sigmaIphiIphi");
+  h1->SetMarkerStyle(20);
+  h1->SetMarkerColor(2);
+  h1->SetLineColor(2);
+  h2->SetMarkerStyle(20);
+  h2->SetMarkerColor(4);
+  h2->SetLineColor(4);
+  h1->GetXaxis()->SetTitle("#sigma_{i#phi,i#phi}");
+  h2->GetXaxis()->SetTitle("#sigma_{i#phi,i#phi}");
+  h1->Scale(1./h1->Integral());
+  h2->Scale(1./h2->Integral());
+
+  lg = new TLegend(0.6,0.7,0.9,0.9);
+  lg->SetName("lg_ElesigmaIphiIphi");
+  lg->AddEntry(h1, "EB", "pl");
+  lg->AddEntry(h2, "EE", "pl");
+
+  plots->Clear();
+  h1->Draw("hist");
+  h2->Draw("hist same");
+  lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
+  sprintf(name, "plots_%s.ps", tag);
+  plots->Print(name);
+  plots->Clear();
+
+  fileout->cd();
+  h1->Write();
+  h2->Write();
+  lg->Write();
 
   // E SC
   h1 = new TH1D("h1", "h1", 100, 0, 300);
@@ -528,6 +1317,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, iPos );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -566,6 +1356,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -605,6 +1396,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -644,6 +1436,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -682,6 +1475,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -721,6 +1515,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -760,6 +1555,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -798,6 +1594,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -826,6 +1623,7 @@
 
   plots->Clear();
   h2d1->Draw("colz");
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -834,6 +1632,7 @@
 
   plots->Clear();
   h2d2->Draw("colz");
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -908,6 +1707,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -939,6 +1739,7 @@
   h3->Draw();
   h4->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1008,6 +1809,7 @@
     func->Write();
   }
   plots->cd(0);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1050,6 +1852,7 @@
   }
   sprintf(name, "plots_%s.ps", tag);
   plots->cd();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -1076,6 +1879,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1106,6 +1910,7 @@
   h3->Draw();
   h4->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1126,6 +1931,7 @@
 
   plots->Clear();
   h2d1->Draw("colz");
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1161,6 +1967,7 @@
 
   plots->Clear();
   h2d2->Draw("colz");
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1235,6 +2042,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1265,6 +2073,7 @@
   h3->Draw();
   h4->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1328,6 +2137,7 @@
   }
   sprintf(name, "plots_%s.ps", tag);
   plots->cd();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -1367,6 +2177,7 @@
   }
   sprintf(name, "plots_%s.ps", tag);
   plots->cd();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -1393,6 +2204,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1423,6 +2235,7 @@
   h3->Draw();
   h4->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1431,6 +2244,7 @@
   h4->Write();
   lg->Write();
 
+/*
   // PTrackIn/ETrue vs ETrue
   h2d1 = new TH2D("h2d1", "h2d1", 30, 0, 300, 300,0,3);
   h2d2 = new TH2D("h2d2", "h2d2", 30, 0, 300, 300,0,3);
@@ -1451,6 +2265,7 @@
   plots->Clear();
   h2d1->Draw("colz");
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -1459,6 +2274,7 @@
   plots->Clear();
   h2d2->Draw("colz");
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -1532,6 +2348,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1562,6 +2379,7 @@
   h3->Draw();
   h4->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1597,6 +2415,7 @@
 
   plots->Clear();
   h2d2->Draw("colz");
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1671,6 +2490,7 @@
   h1->Draw();
   h2->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1701,6 +2521,7 @@
   h3->Draw();
   h4->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1742,6 +2563,7 @@
   plots->Clear();
   h3d2->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -1804,6 +2626,7 @@
     }
     plots->cd(0);
     sprintf(name, "plots_%s.ps", tag);
+    CMS_lumi_v2( plots, iPeriod, 11 );
     plots->Print(name);
     plots->Clear();
   }
@@ -1867,6 +2690,7 @@
 
     plots->cd(0);
     sprintf(name, "plots_%s.ps", tag);
+    CMS_lumi_v2( plots, iPeriod, 11 );
     plots->Print(name);
     plots->Clear();
 
@@ -1908,6 +2732,7 @@
   ha1[1]->Draw("same");
   ha1[2]->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -1953,6 +2778,7 @@
   ha2[2]->Draw("same");
   lg->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -1996,6 +2822,7 @@
   ha3[1]->Draw("same");
   ha3[2]->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -2040,6 +2867,7 @@
   ha4[1]->Draw("same");
   ha4[2]->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -2073,6 +2901,7 @@
   plots->Clear();
   h3d1->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -2081,6 +2910,7 @@
   plots->Clear();
   h3d2->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -2143,6 +2973,7 @@
     }
     plots->cd(0);
     sprintf(name, "plots_%s.ps", tag);
+    CMS_lumi_v2( plots, iPeriod, 11 );
     plots->Print(name);
     plots->Clear();
   }
@@ -2206,6 +3037,7 @@
 
     plots->cd(0);
     sprintf(name, "plots_%s.ps", tag);
+    CMS_lumi_v2( plots, iPeriod, 11 );
     plots->Print(name);
     plots->Clear();
 
@@ -2248,6 +3080,7 @@
   ha1[2]->Draw("same");
   lg->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2292,6 +3125,7 @@
   ha2[2]->Draw("same");
   lg->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2335,6 +3169,7 @@
   ha3[1]->Draw("same");
   ha3[2]->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -2379,6 +3214,7 @@
   ha4[1]->Draw("same");
   ha4[2]->Draw("same");
   lg->Draw();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   sprintf(name, "plots_%s.ps", tag);
   plots->Print(name);
   plots->Clear();
@@ -2415,6 +3251,7 @@
   plots->Clear();
   h2d1->Draw("colz");
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -2423,6 +3260,7 @@
   plots->Clear();
   h2d2->Draw("colz");
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -2484,6 +3322,7 @@
   }
   plots->cd(0);
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2523,6 +3362,7 @@
   }
   sprintf(name, "plots_%s.ps", tag);
   plots->cd();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2550,6 +3390,7 @@
   h2->Draw("same");
   lg->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2580,6 +3421,7 @@
   h4->Draw("same");
   lg->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2608,6 +3450,7 @@
   plots->Clear();
   h2d1->Draw("colz");
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -2616,6 +3459,7 @@
   plots->Clear();
   h2d2->Draw("colz");
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
   fileout->cd();
@@ -2679,6 +3523,7 @@
   }
   sprintf(name, "plots_%s.ps", tag);
   plots->cd();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2721,6 +3566,7 @@
   }
   sprintf(name, "plots_%s.ps", tag);
   plots->cd();
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2748,6 +3594,7 @@
   h2->Draw("same");
   lg->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2778,6 +3625,7 @@
   h4->Draw("same");
   lg->Draw();
   sprintf(name, "plots_%s.ps", tag);
+  CMS_lumi_v2( plots, iPeriod, 11 );
   plots->Print(name);
   plots->Clear();
 
@@ -2785,6 +3633,7 @@
   h4->Write();
   lg->Write();
 
+*/
 
   // end 
   sprintf(name, "plots_%s.ps]", tag);

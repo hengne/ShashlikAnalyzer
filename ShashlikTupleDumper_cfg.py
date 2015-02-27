@@ -34,7 +34,23 @@ process.source = cms.Source("PoolSource",
     #     'root://eoscms//store/relval/CMSSW_6_2_0_SLHC20/RelValZEE_14TeV/GEN-SIM-RECO/DES23_62_V1_UPG2023SHNoTaper-v1/00000/DC8C127C-2B60-E411-B10A-0025905B855E.root'
     
     # Zee PU140
+#    'root://cms-xrd-global.cern.ch//store/mc/TP2023SHCALDR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/SHCALJan23_PU140BX25_PH2_1K_FB_V6-v1/00000/002CD53C-57A7-E411-BB32-002618943901.root',
+#    'root://cms-xrd-global.cern.ch//store/mc/TP2023SHCALDR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/SHCALJan23_PU140BX25_PH2_1K_FB_V6-v1/00000/006867B6-D8A6-E411-A8CD-0025905A6070.root',
+#'root://cms-xrd-global.cern.ch//store/mc/TP2023SHCALDR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/SHCALJan23_PU140BX25_PH2_1K_FB_V6-v1/00000/009271E3-EAA6-E411-A58E-0025905A6132.root',
+#'root://cms-xrd-global.cern.ch//store/mc/TP2023SHCALDR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/SHCALJan23_PU140BX25_PH2_1K_FB_V6-v1/00000/0094D1BB-00A7-E411-8121-0025905A60F2.root',
+#'root://cms-xrd-global.cern.ch//store/mc/TP2023SHCALDR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/SHCALJan23_PU140BX25_PH2_1K_FB_V6-v1/00000/00B57B03-07A7-E411-98CB-00261894385D.root',
+#'root://cms-xrd-global.cern.ch//store/mc/TP2023SHCALDR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/SHCALJan23_PU140BX25_PH2_1K_FB_V6-v1/00000/00BEFD4D-E1A6-E411-AEBA-0025905B8596.root', 
     
+    # Zee PU140 Phase1
+'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/F63465C0-D6AB-E411-AEB4-003048FFD740.root',
+'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/F6A2B2E4-F6AB-E411-AA14-0025905A48EC.root',
+#'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/F6D5FBC6-29AC-E411-B2B8-0025905A611E.root',
+#'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/F8BD422A-E1AB-E411-B38B-00248C55CC3C.root',
+#'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/FA55F7D8-15AC-E411-85A7-002590596484.root',
+#'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/FC8440E0-F3AB-E411-A3A1-0025905B85EE.root',
+#'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/FC945B0E-FFAB-E411-8B85-002618943925.root',
+#'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/FE4023C6-E0AB-E411-87AF-0025905B8592.root',
+#'root://cms-xrd-global.cern.ch//store/mc/GEM2019Upg14DR/DYToEE_M-20_TuneZ2star_14TeV-pythia6-tauola/GEN-SIM-RECO/Phase1age1kJan23_PU140BX25_PH1_1K_FB_V3-v1/40000/FE4BC415-EAAB-E411-AEED-0025905A48FC.root',
     )
 )
 
