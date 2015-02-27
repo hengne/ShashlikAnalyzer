@@ -37,6 +37,7 @@
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
+#include "DataFormats/Math/interface/deltaR.h"
 #include"SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 //#include "CLHEP/Units/GlobalPhysicalConstants.h"
 #include <iostream>
@@ -58,6 +59,8 @@ ShashlikTupleDumper::ShashlikTupleDumper(const edm::ParameterSet& conf)
   outputFile_ = conf.getParameter<std::string>("outputFile");
   histfile_ = new TFile(outputFile_.c_str(),"RECREATE");
   electronCollection_ = conf.getParameter<edm::InputTag>("electronCollection");
+  superClusterEB_ = conf.getParameter<edm::InputTag>("superClusterEB");
+  superClusterEE_ = conf.getParameter<edm::InputTag>("superClusterEE");
   mcTruthCollection_ = conf.getParameter<edm::InputTag>("mcTruthCollection");
   barrelRecHitCollection_ = conf.getParameter<edm::InputTag>("barrelRecHitCollection");
   endcapRecHitCollection_ = conf.getParameter<edm::InputTag>("endcapRecHitCollection");
@@ -105,6 +108,9 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("PDGTrue", &PDGTrue);
   tree->Branch("MomPDGTrue", &MomPDGTrue);
   tree->Branch("FoundGsf", &FoundGsf);
+  tree->Branch("FoundSc", &FoundSc);
+  tree->Branch("DeltaRGsf", &DeltaRGsf);
+  tree->Branch("DeltaRSc", &DeltaRSc);
   tree->Branch("ESc", &ESc);
   tree->Branch("EScRaw", &EScRaw);
   tree->Branch("EtSc", &EtSc);
@@ -140,6 +146,7 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("HoE1", &HoE1); // hcalDepth1OverEcal1()
   tree->Branch("HoE2", &HoE2); // hcalDepth1OverEcal2()
   tree->Branch("ecalDriven", &ecalDriven); //ecalDrivenSeed() 
+  tree->Branch("trackDriven", &trackDriven); //trackerDrivenSeed() 
   tree->Branch("sigmaEtaEta", &sigmaEtaEta); // sigmaEtaEta()
   tree->Branch("sigmaIetaIeta", &sigmaIetaIeta); // sigmaIetaIeta()
   tree->Branch("sigmaIphiIphi", &sigmaIphiIphi); // sigmaIphiIphi()
@@ -182,6 +189,9 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   PDGTrue.clear();
   MomPDGTrue.clear();
   FoundGsf.clear();
+  FoundSc.clear();
+  DeltaRGsf.clear();
+  DeltaRSc.clear();
   ESc.clear();
   EScRaw.clear();
   EtSc.clear();
@@ -217,6 +227,7 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   HoE1.clear();
   HoE2.clear();
   ecalDriven.clear();
+  trackDriven.clear();
   sigmaEtaEta.clear();
   sigmaIetaIeta.clear();
   sigmaIphiIphi.clear();
@@ -277,6 +288,12 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::Handle<reco::GsfElectronCollection> gsfElectrons;
   iEvent.getByLabel(electronCollection_,gsfElectrons);
   edm::LogInfo("")<<"\n\n =================> Treating event "<<iEvent.id()<<" Number of electrons "<<gsfElectrons.product()->size();
+
+  edm::Handle<reco::SuperClusterCollection> superClustersEB;
+  iEvent.getByLabel(superClusterEB_,superClustersEB);
+
+  edm::Handle<reco::SuperClusterCollection> superClustersEE;
+  iEvent.getByLabel(superClusterEE_,superClustersEE);
 
   edm::Handle<reco::GenParticleCollection> genParticles;
   iEvent.getByLabel(mcTruthCollection_, genParticles);
@@ -353,7 +370,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
     
     // only use gen status ==1
-    //if (tstatus!=1) continue;
+    //if (tstatus!=1) continue; // have to remove this request
 
     // only select electrons
     if (abs(tpdgid)!=11) continue;
@@ -388,7 +405,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     bool okGsfFound = false;
     double deltaR_min = 999999.;
     double gsfOkRatio = 999999.;
-
+    double deltaRGsf = 999999.;
     // find best matched electron
     reco::GsfElectron bestGsfElectron;
     for (reco::GsfElectronCollection::const_iterator gsfIter=gsfElectrons->begin();
@@ -411,26 +428,71 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
           if ( std::abs(tmpGsfRatio-1) < std::abs(gsfOkRatio-1) ) {
             gsfOkRatio = tmpGsfRatio;
             bestGsfElectron=*gsfIter;
+            deltaRGsf = deltaR;
             okGsfFound = true;
           }
         }
       }
     } // loop over rec ele to look for the best one    
-  
+ 
+    // if not found gsfElectron, try superClusters
+    bool okScFound = false;
+    double deltaRSc_min = 999999.;
+    double ScOkRatio = 999999.;
+    double deltaRSc = 999999.;
+    // find best matched sc
+    reco::SuperCluster bestSuperCluster;
+    if (!okGsfFound){
+      // EB
+      for (reco::SuperClusterCollection::const_iterator scIter=superClustersEB->begin();
+           scIter!=superClustersEB->end(); scIter++)
+      {
+        double deltaR = reco::deltaR(*mcIter, *scIter);
+        //std::cout << "mcPar " << mcNum << ": deltaR=" << deltaR << std::endl;
+        if ( deltaR < deltaR_ )
+        {
+          if (deltaR<deltaRSc_min)
+          {
+            deltaRSc_min = deltaR;
+          }
+          double tmpScRatio = scIter->energy()/mcIter->energy();
+          if ( std::abs(tmpScRatio-1) < std::abs(ScOkRatio-1) ) {
+            ScOkRatio = tmpScRatio;
+            bestSuperCluster=*scIter;
+            deltaRSc=deltaR;
+            okScFound = true;
+          }
+        }
+      } // loop over sc to look for the best one 
+     
+      // EE
+      for (reco::SuperClusterCollection::const_iterator scIter=superClustersEE->begin();
+           scIter!=superClustersEE->end(); scIter++)
+      {
+        double deltaR = reco::deltaR(*mcIter, *scIter);
+        if ( deltaR < deltaR_ )
+        {
+          if (deltaR<deltaRSc_min)
+          {
+            deltaRSc_min = deltaR;
+          }
+          double tmpScRatio = scIter->energy()/mcIter->energy();
+          if ( std::abs(tmpScRatio-1) < std::abs(ScOkRatio-1) ) {
+            ScOkRatio = tmpScRatio;
+            bestSuperCluster=*scIter;
+            deltaRSc=deltaR;
+            okScFound = true;
+          }
+        }
+      } // loop over sc to look for the best one 
+
+    } 
 
     // only book truth if gsf is not found
     if (!okGsfFound) 
     {
       FoundGsf.push_back(0);
-      ESc.push_back(-100);
-      EScRaw.push_back(-100);
-      EtSc.push_back(-100);
-      EtaSc.push_back(-100);
-      PhiSc.push_back(-100);
-      EScSeed.push_back(-100);
-      EtScSeed.push_back(-100);
-      EtaScSeed.push_back(-100);
-      PhiScSeed.push_back(-100);
+      DeltaRGsf.push_back(-100);
       E.push_back(-100);
       Pt.push_back(-100);
       Px.push_back(-100);
@@ -445,6 +507,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       HoE1.push_back(-100);
       HoE2.push_back(-100);
       ecalDriven.push_back(false);
+      trackDriven.push_back(false);
       sigmaEtaEta.push_back(-100);
       sigmaIetaIeta.push_back(-100);
       sigmaIphiIphi.push_back(-100);
@@ -486,14 +549,58 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       std::vector<float> evec1,evec2;
       ScClHitFrac.push_back(evec1);
       ScClHitE.push_back(evec2);
+    }
+
+    // no gsf also no supercluster
+    if (!okGsfFound&&!okScFound)
+    {
+      FoundSc.push_back(0);
+      DeltaRSc.push_back(-100);
+      ESc.push_back(-100);
+      EScRaw.push_back(-100);
+      EtSc.push_back(-100);
+      EtaSc.push_back(-100);
+      PhiSc.push_back(-100);
+      EScSeed.push_back(-100);
+      EtScSeed.push_back(-100);
+      EtaScSeed.push_back(-100);
+      PhiScSeed.push_back(-100);
+    }
+
+    // now, no gsf and no sc cases are skipped, 
+    // starting here are two case:
+    //   1.) no gsf but found sc
+    //   2.) has gsf
+    // starting from case 1.) no gsf but found sc
+    if (!okGsfFound&&okScFound)
+    {
+      FoundSc.push_back(1);
+      DeltaRSc.push_back(deltaRSc);
+      // now fill the gsf electron info
+      ESc.push_back(bestSuperCluster.energy());
+      EScRaw.push_back(bestSuperCluster.rawEnergy());
+      EtSc.push_back(bestSuperCluster.energy()/cosh(bestSuperCluster.eta()));
+      EtaSc.push_back(bestSuperCluster.eta());
+      PhiSc.push_back(bestSuperCluster.phi());
+      // seed
+      reco::CaloClusterPtr seedCluster = bestSuperCluster.seed();
+      EScSeed.push_back(seedCluster->energy());
+      EtScSeed.push_back(seedCluster->energy()/cosh(seedCluster->eta()));
+      EtaScSeed.push_back(seedCluster->eta());
+      PhiScSeed.push_back(seedCluster->phi());
+    }
+
+    if (!okGsfFound){
       // skip the rests
       mcNum++;
-      continue;
+      continue; 
     }
 
     // otherwise found gsf
     FoundGsf.push_back(1);
-         
+    DeltaRGsf.push_back(deltaRGsf);
+    FoundSc.push_back(1);
+ 
     // gsfElectron info
     E.push_back(bestGsfElectron.energy());
     Pt.push_back(bestGsfElectron.pt());
@@ -511,6 +618,7 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     HoE1.push_back(bestGsfElectron.hcalDepth1OverEcal());
     HoE2.push_back(bestGsfElectron.hcalDepth2OverEcal());
     ecalDriven.push_back(bestGsfElectron.ecalDrivenSeed());
+    trackDriven.push_back(bestGsfElectron.trackerDrivenSeed());
     sigmaEtaEta.push_back(bestGsfElectron.sigmaEtaEta());
     sigmaIetaIeta.push_back(bestGsfElectron.sigmaIetaIeta());
     sigmaIphiIphi.push_back(bestGsfElectron.sigmaIphiIphi());

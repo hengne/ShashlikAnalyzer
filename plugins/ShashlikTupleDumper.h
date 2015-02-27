@@ -63,6 +63,8 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   std::vector<int> PDGTrue;
   std::vector<int> MomPDGTrue;
   std::vector<int> FoundGsf;
+  std::vector<int> FoundSc;
+  std::vector<double> DeltaRGsf, DeltaRSc;
   
 
   std::vector<double> ESc, EScRaw, EtSc, EtaSc, PhiSc;
@@ -80,7 +82,7 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
 
   std::vector<double> E, Pt, Px, Py, Pz, Eta, Phi, Charge;
   std::vector<int> PDG, Classify;
-  std::vector<bool> isEB, isEE, ecalDriven;
+  std::vector<bool> isEB, isEE, ecalDriven, trackDriven;
   std::vector<float> HoE, HoE1, HoE2, sigmaEtaEta, sigmaIetaIeta, sigmaIphiIphi, r9;
   std::vector<float> dEtaSCAtVtx, dEtaSCAtCal, dPhiSCAtVtx, dPhiSCAtCal, trackFbrem, scFbrem;
 
@@ -92,6 +94,9 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
 
   std::string outputFile_;
   edm::InputTag electronCollection_;
+  edm::InputTag photonCollection_;
+  edm::InputTag superClusterEB_;
+  edm::InputTag superClusterEE_;
   edm::InputTag mcTruthCollection_;
   edm::InputTag barrelRecHitCollection_ ;
   edm::InputTag endcapRecHitCollection_ ;
