@@ -1,6 +1,5 @@
 import FWCore.ParameterSet.Config as cms
 
-
 ShashlikAna = cms.EDAnalyzer('ShashlikTupleDumper',
     treeType = cms.string("Ztree"),
     electronCollection = cms.InputTag("gsfElectrons"),

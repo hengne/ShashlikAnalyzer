@@ -26,6 +26,7 @@
 #include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
 #include "DataFormats/ParticleFlowReco/interface/PFRecHit.h"
 #include "DataFormats/ParticleFlowReco/interface/PFRecHitFwd.h"
+#include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
 
 class TFile;
 class TTree;
@@ -54,6 +55,10 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   double getHCALClusterEnergy(const reco::SuperCluster & sc, const reco::PFClusterCollection *hcalpfcs, float EtMin, double hOverEConeSize) const;
   const reco::PFRecHit* getNearestHCALPFRecHit(const reco::SuperCluster & sc, const reco::PFRecHitCollection * pfrechits) const;
   bool isValidHCALPFRecHit(const reco::SuperCluster & sc, const reco::PFRecHit *hit);  
+  double getHcalsumE(const reco::PFRecHit * hit, const reco::PFRecHitCollection * pfrechits);
+  double getHcalsumE2(const reco::PFRecHit * hit, const reco::PFRecHitCollection * pfrechits);
+  double getHcalsumE3(const reco::PFRecHit * hit, const reco::PFRecHitCollection * pfrechits);
+  double getHcalwtE(const reco::PFRecHit * hit, const reco::PFRecHitCollection * pfrechits);
 
  private:
 
@@ -120,6 +125,8 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   std::vector<int> matchingMotherIDs_;
 
   bool printMCtable_;
+
+  const CaloTowerConstituentsMap* theTowerConstituentsMap_;
 
  };
 

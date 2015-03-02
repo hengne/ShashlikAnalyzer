@@ -40,6 +40,9 @@
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/Math/interface/Vector3D.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "Geometry/CaloTopology/interface/HcalTopology.h"
+#include "Geometry/CaloTopology/interface/CaloTowerTopology.h"
 #include "Math/Vector3D.h"
 #include "Math/VectorUtil.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
@@ -387,6 +390,10 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
     }
   }
 
+  edm::ESHandle<CaloTowerConstituentsMap> ctmap;
+  iSetup.get<CaloGeometryRecord>().get(ctmap);
+  theTowerConstituentsMap_ = ctmap.product();
+
   // clear tree brach vectors
   clearQCDTreeBranchVectors();
 
@@ -416,9 +423,37 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
 
     // nearest rechit
     const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(*scIter, hcalPFRecHits.product());
-    std::cout << "nearestHit:: " ;
-    if (isValidHCALPFRecHit(*scIter,nearestHit)) std::cout << "H/E=" << nearestHit->energy()/scIter->energy() << std::endl;
-    else std::cout << "Not match , H/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+    //std::cout << "nearestHit:: " ;
+    bool validHit = isValidHCALPFRecHit(*scIter,nearestHit);
+    if (validHit) {
+      //std::cout << "Hhit/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+      // HsumE
+      double HsumE = getHcalsumE(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE/E=" << HsumE/scIter->energy() << std::endl;
+      // HsumE2
+      double HsumE2 = getHcalsumE2(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE2/E=" << HsumE2/scIter->energy() << std::endl;
+      // HsumE3
+      double HsumE3 = getHcalsumE3(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE3/E=" << HsumE3/scIter->energy() << std::endl;
+      // HwtE
+      double HwtE = getHcalwtE(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HwtE/E=" << HwtE/scIter->energy() << std::endl;
+      HoEsumE.push_back( HsumE/scIter->energy());
+      HoEsumE2.push_back( HsumE2/scIter->energy());
+      HoEsumE3.push_back( HsumE3/scIter->energy());
+      HoEwtE.push_back( HwtE/scIter->energy());
+
+    }
+    else {
+      //std::cout << "Not match , Hhit/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+      HoEsumE.push_back(0);
+      HoEsumE2.push_back(0);
+      HoEsumE3.push_back(0);
+      HoEwtE.push_back(0);
+    }
+
+        
 
   } // loop over sc 
 
@@ -446,9 +481,35 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
 
     // nearest rechit
     const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(*scIter, hcalPFRecHits.product());
-    std::cout << "nearestHit:: " ;
-    if (isValidHCALPFRecHit(*scIter,nearestHit)) std::cout << "H/E=" << nearestHit->energy()/scIter->energy() << std::endl;
-    else std::cout << "Not match , H/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+    //std::cout << "nearestHit:: " ;
+    bool validHit = isValidHCALPFRecHit(*scIter,nearestHit);
+    if (validHit) {
+      //std::cout << "Hhit/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+      // HsumE
+      double HsumE = getHcalsumE(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE/E=" << HsumE/scIter->energy() << std::endl;
+      // HsumE2
+      double HsumE2 = getHcalsumE2(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE2/E=" << HsumE2/scIter->energy() << std::endl;
+      // HsumE3
+      double HsumE3 = getHcalsumE3(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE3/E=" << HsumE3/scIter->energy() << std::endl;
+      // HwtE
+      double HwtE = getHcalwtE(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HwtE/E=" << HwtE/scIter->energy() << std::endl;
+      HoEsumE.push_back( HsumE/scIter->energy());
+      HoEsumE2.push_back( HsumE2/scIter->energy());
+      HoEsumE3.push_back( HsumE3/scIter->energy());
+      HoEwtE.push_back( HwtE/scIter->energy());
+
+    }
+    else {
+      //std::cout << "Not match , Hhit/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+      HoEsumE.push_back(0);
+      HoEsumE2.push_back(0);
+      HoEsumE3.push_back(0);
+      HoEwtE.push_back(0);
+    }
 
 
 
@@ -1000,7 +1061,7 @@ const reco::PFRecHit* ShashlikTupleDumper::getNearestHCALPFRecHit(const reco::Su
   double dRmin = 999999;
   math::XYZVector vectorSC(sc.position().x(),sc.position().y(),sc.position().z());
   for (; trIter!=pfrechits->end(); ++trIter){
-    //if (trIter->depth()!=1) continue; // only take the first layer.
+    if (trIter->depth()!=1) continue; // only take the first layer.
     math::XYZVector vectorHcal(trIter->position().x(),trIter->position().y(),trIter->position().z());
     double dR = ROOT::Math::VectorUtil::DeltaR(vectorSC,vectorHcal);
     if (dR<dRmin) {
@@ -1009,12 +1070,12 @@ const reco::PFRecHit* ShashlikTupleDumper::getNearestHCALPFRecHit(const reco::Su
     }
   }
 
-  HcalDetId detid_nst(nearestHit->detId());
-  int ieta_nst = detid_nst.ieta();
-  int iphi_nst = detid_nst.iphi();
-  int depth_nst = nearestHit->depth();
-  std::cout << "ShashlikTupleDumper::getNearestHCALPFRecHit: " << "dR=" << dRmin << "; depth=" << depth_nst << "; ieta=" << ieta_nst << "; iphi=" << iphi_nst 
-            << std::endl;
+  //HcalDetId detid_nst(nearestHit->detId());
+  //int ieta_nst = detid_nst.ieta();
+  //int iphi_nst = detid_nst.iphi();
+  //int depth_nst = nearestHit->depth();
+  //std::cout << "ShashlikTupleDumper::getNearestHCALPFRecHit: " << "dR=" << dRmin << "; depth=" << depth_nst << "; ieta=" << ieta_nst << "; iphi=" << iphi_nst 
+  //          << std::endl;
 
   return &(*nearestHit); 
 }
@@ -1034,6 +1095,87 @@ bool ShashlikTupleDumper::isValidHCALPFRecHit(const reco::SuperCluster & sc, con
     return false;
 
   return true;
+
+}
+
+double ShashlikTupleDumper::getHcalsumE(const reco::PFRecHit * hit, const reco::PFRecHitCollection * pfrechits)
+{
+
+  HcalDetId detid_nst(hit->detId());
+  CaloTowerDetId towerDetId_nst = theTowerConstituentsMap_->towerOf(detid_nst);
+
+  double energy(0);
+  reco::PFRecHitCollection::const_iterator trIter = pfrechits->begin();
+  for (; trIter!=pfrechits->end(); ++trIter){
+    HcalDetId detid(trIter->detId());
+    CaloTowerDetId towerDetId = theTowerConstituentsMap_->towerOf(detid);
+    if (towerDetId.rawId()==towerDetId_nst.rawId()){
+      energy += trIter->energy();
+      //int ieta = detid.ieta();
+      //int iphi = detid.iphi();
+      //int depth = trIter->depth();
+      //std::cout << "ShashlikTupleDumper::getHcalsumE: " << "; depth=" << depth << "; ieta=" << ieta << "; iphi=" << iphi << std::endl;
+    }
+  }
+  return energy; 
+}
+
+double ShashlikTupleDumper::getHcalsumE2(const reco::PFRecHit * hit, const reco::PFRecHitCollection * pfrechits)
+{
+
+  HcalDetId detid_nst(hit->detId());
+  CaloTowerDetId towerDetId_nst = theTowerConstituentsMap_->towerOf(detid_nst);
+
+  double energy(0);
+  reco::PFRecHitCollection::const_iterator trIter = pfrechits->begin();
+  for (; trIter!=pfrechits->end(); ++trIter){
+    if (trIter->depth()<=1) continue;
+    HcalDetId detid(trIter->detId());
+    CaloTowerDetId towerDetId = theTowerConstituentsMap_->towerOf(detid);
+    if (towerDetId.rawId()==towerDetId_nst.rawId()){
+      energy += trIter->energy();
+    }
+  }
+  return energy;
+}
+
+double ShashlikTupleDumper::getHcalsumE3(const reco::PFRecHit * hit, const reco::PFRecHitCollection * pfrechits)
+{
+
+  HcalDetId detid_nst(hit->detId());
+  CaloTowerDetId towerDetId_nst = theTowerConstituentsMap_->towerOf(detid_nst);
+
+  double energy(0);
+  reco::PFRecHitCollection::const_iterator trIter = pfrechits->begin();
+  for (; trIter!=pfrechits->end(); ++trIter){
+    if (trIter->depth()<=2) continue;
+    HcalDetId detid(trIter->detId());
+    CaloTowerDetId towerDetId = theTowerConstituentsMap_->towerOf(detid);
+    if (towerDetId.rawId()==towerDetId_nst.rawId()){
+      energy += trIter->energy();
+    }
+  }
+  return energy;
+}
+
+
+double ShashlikTupleDumper::getHcalwtE(const reco::PFRecHit * hit, const reco::PFRecHitCollection * pfrechits)
+{
+  double sumDepthEng(0);
+  double sumDepth(0);
+  HcalDetId detid_nst(hit->detId());
+  CaloTowerDetId towerDetId_nst = theTowerConstituentsMap_->towerOf(detid_nst);
+  reco::PFRecHitCollection::const_iterator trIter = pfrechits->begin();
+  for (; trIter!=pfrechits->end(); ++trIter){
+    HcalDetId detid(trIter->detId());
+    CaloTowerDetId towerDetId = theTowerConstituentsMap_->towerOf(detid);
+    if (towerDetId.rawId()==towerDetId_nst.rawId()){
+      int depth = trIter->depth();
+      sumDepthEng += depth*trIter->energy();
+      sumDepth += depth;
+    }
+  }
+  return sumDepthEng/sumDepth;
 
 }
 
