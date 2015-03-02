@@ -22,7 +22,10 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
-
+#include "DataFormats/ParticleFlowReco/interface/PFClusterFwd.h"
+#include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
+#include "DataFormats/ParticleFlowReco/interface/PFRecHit.h"
+#include "DataFormats/ParticleFlowReco/interface/PFRecHitFwd.h"
 
 class TFile;
 class TTree;
@@ -40,10 +43,17 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   virtual void analyze(const edm::Event& e, const edm::EventSetup& c);
 
   void bookTree();
+  void bookQCDTree();
   void clearTreeBranchVectors();
+  void clearQCDTreeBranchVectors();
+  void FillTree(const edm::Event& e, const edm::EventSetup& c);
+  void FillQCDTree(const edm::Event& e, const edm::EventSetup& c);
 
   double matchDR(reco::GenParticleCollection::const_iterator pmc, reco::GsfElectronCollection::const_iterator prec);
   double matchDRV2(reco::GenParticleCollection::const_iterator pmc, reco::GsfElectronCollection::const_iterator prec);
+  double getHCALClusterEnergy(const reco::SuperCluster & sc, const reco::PFClusterCollection *hcalpfcs, float EtMin, double hOverEConeSize) const;
+  const reco::PFRecHit* getNearestHCALPFRecHit(const reco::SuperCluster & sc, const reco::PFRecHitCollection * pfrechits) const;
+  bool isValidHCALPFRecHit(const reco::SuperCluster & sc, const reco::PFRecHit *hit);  
 
  private:
 
@@ -91,8 +101,10 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
 
   std::vector<double> PTrackIn, PtTrackIn, PxTrackIn, PyTrackIn, PzTrackIn;
   std::vector<double> EtaTrackIn, PhiTrackIn;
+  std::vector<double> HoEpf, HoEsumE, HoEwtE, HoEsumE2, HoEsumE3;
 
   std::string outputFile_;
+  std::string treeType_;
   edm::InputTag electronCollection_;
   edm::InputTag photonCollection_;
   edm::InputTag superClusterEB_;
@@ -100,6 +112,8 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   edm::InputTag mcTruthCollection_;
   edm::InputTag barrelRecHitCollection_ ;
   edm::InputTag endcapRecHitCollection_ ;
+  edm::InputTag hcalPFClusterCollection_;
+  edm::InputTag hcalPFRecHitCollection_;
 
   double deltaR_;
   std::vector<int> matchingIDs_;

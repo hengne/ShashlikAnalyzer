@@ -38,17 +38,19 @@
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
 #include "DataFormats/Math/interface/deltaR.h"
-#include"SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "DataFormats/Math/interface/Vector3D.h"
+#include "DataFormats/HcalDetId/interface/HcalDetId.h"
+#include "Math/Vector3D.h"
+#include "Math/VectorUtil.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 //#include "CLHEP/Units/GlobalPhysicalConstants.h"
 #include <iostream>
 #include <vector>
+#include <cstdint>
 #include "TMath.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TVector2.h"
-#include <iostream>
-
-
 
 
 DEFINE_FWK_MODULE(ShashlikTupleDumper);
@@ -58,12 +60,15 @@ ShashlikTupleDumper::ShashlikTupleDumper(const edm::ParameterSet& conf)
  {
   outputFile_ = conf.getParameter<std::string>("outputFile");
   histfile_ = new TFile(outputFile_.c_str(),"RECREATE");
+  treeType_ = conf.getParameter<std::string>("treeType");
   electronCollection_ = conf.getParameter<edm::InputTag>("electronCollection");
   superClusterEB_ = conf.getParameter<edm::InputTag>("superClusterEB");
   superClusterEE_ = conf.getParameter<edm::InputTag>("superClusterEE");
   mcTruthCollection_ = conf.getParameter<edm::InputTag>("mcTruthCollection");
   barrelRecHitCollection_ = conf.getParameter<edm::InputTag>("barrelRecHitCollection");
   endcapRecHitCollection_ = conf.getParameter<edm::InputTag>("endcapRecHitCollection");
+  hcalPFClusterCollection_ = conf.getParameter<edm::InputTag>("hcalPFClusterCollection");
+  hcalPFRecHitCollection_ = conf.getParameter<edm::InputTag>("hcalPFRecHitCollection");
   deltaR_ = conf.getParameter<double>("DeltaR");
   matchingMotherIDs_ = conf.getParameter<std::vector<int> >("MatchingMotherID");
   printMCtable_ = conf.getParameter<bool>("printMCtable");
@@ -74,8 +79,45 @@ void
 ShashlikTupleDumper::beginJob()
 {
   histfile_->cd();
-  bookTree();
+  if (treeType_=="Ztree"){
+    bookTree();
+  }
+  else if (treeType_=="QCDtree"){
+    bookQCDTree();
+  }
+  else {
+    throw cms::Exception("ShashlikTupleDumper") << "ShashlikTupleDumper::unknown treeType " << treeType_ << "." << std::endl; 
+  }
   
+}
+
+void
+ShashlikTupleDumper::bookQCDTree()
+{
+  histfile_->cd();
+  tree = new TTree("tree", "tree");
+
+  tree->Branch("NPV", &NPV,"NPV/I");
+  tree->Branch("Nparts", &Nparts,"Nparts/I");
+  tree->Branch("isEB", &isEB);
+  tree->Branch("isEE", &isEE);
+  tree->Branch("ESc", &ESc);
+  tree->Branch("EScRaw", &EScRaw);
+  tree->Branch("EtSc", &EtSc);
+  tree->Branch("EtaSc", &EtaSc);
+  tree->Branch("PhiSc", &PhiSc);
+  tree->Branch("EScSeed", &EScSeed);
+  tree->Branch("EtScSeed", &EtScSeed);
+  tree->Branch("EtaScSeed", &EtaScSeed);
+  tree->Branch("PhiScSeed", &PhiScSeed);
+  tree->Branch("ScSeedNHits", &ScSeedNHits);
+  tree->Branch("ScNCl", &ScNCl);
+  tree->Branch("HoEpf", &HoEpf);
+  tree->Branch("HoEwtE", &HoEwtE);
+  tree->Branch("HoEsumE", &HoEsumE);
+  tree->Branch("HoEsumE2", &HoEsumE2);
+  tree->Branch("HoEsumE3", &HoEsumE3);
+
 }
 
 void 
@@ -174,6 +216,25 @@ ShashlikTupleDumper::bookTree()
 
 
 }
+
+void
+ShashlikTupleDumper::clearQCDTreeBranchVectors()
+{
+  isEB.clear();
+  isEE.clear();  
+  ESc.clear();
+  EScRaw.clear();
+  EtSc.clear();
+  EtaSc.clear();
+  PhiSc.clear();
+  EScSeed.clear();
+  EtScSeed.clear();
+  EtaScSeed.clear();
+  PhiScSeed.clear();
+  ScNCl.clear();
+  HoEpf.clear();
+}
+
 
 void
 ShashlikTupleDumper::clearTreeBranchVectors()
@@ -283,8 +344,123 @@ ShashlikTupleDumper::~ShashlikTupleDumper()
 void
 ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  // get electrons
+  if (treeType_=="Ztree"){
+    FillTree(iEvent,iSetup);
+  }
+  else if (treeType_=="QCDtree"){
+    FillQCDTree(iEvent,iSetup);
+  }
+  else {
+    throw cms::Exception("ShashlikTupleDumper") << "ShashlikTupleDumper::unknown treeType " << treeType_ << "." << std::endl;
+  }
+}
 
+
+void
+ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{
+
+  edm::Handle<reco::SuperClusterCollection> superClustersEB;
+  iEvent.getByLabel(superClusterEB_,superClustersEB);
+
+  edm::Handle<reco::SuperClusterCollection> superClustersEE;
+  iEvent.getByLabel(superClusterEE_,superClustersEE);
+
+  edm::Handle<reco::PFClusterCollection> hcalPFClusters;
+  iEvent.getByLabel(hcalPFClusterCollection_,hcalPFClusters);
+
+  edm::Handle<reco::PFRecHitCollection> hcalPFRecHits;
+  iEvent.getByLabel(hcalPFRecHitCollection_,hcalPFRecHits);
+
+  edm::Handle<std::vector< PileupSummaryInfo > >  PupInfo;
+  iEvent.getByLabel(edm::InputTag("addPileupInfo"), PupInfo);
+
+  std::vector<PileupSummaryInfo>::const_iterator PVI;
+  NPV = -1;
+  for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
+  {
+    int BX = PVI->getBunchCrossing();
+    if(BX == 0)
+    {
+      NPV = PVI->getTrueNumInteractions();
+      continue;
+    }
+  }
+
+  // clear tree brach vectors
+  clearQCDTreeBranchVectors();
+
+  Nparts=0;
+
+  // EB
+  for (reco::SuperClusterCollection::const_iterator scIter=superClustersEB->begin();
+       scIter!=superClustersEB->end(); scIter++)
+  {
+    Nparts++;
+    isEB.push_back(true);
+    isEE.push_back(false);
+    ESc.push_back(scIter->energy());
+    EScRaw.push_back(scIter->rawEnergy());
+    EtSc.push_back(scIter->energy()/cosh(scIter->eta()));
+    EtaSc.push_back(scIter->eta());
+    PhiSc.push_back(scIter->phi());
+    ScNCl.push_back((int)scIter->clustersSize());
+    // seed
+    reco::CaloClusterPtr seedCluster = scIter->seed();
+    EScSeed.push_back(seedCluster->energy());
+    EtScSeed.push_back(seedCluster->energy()/cosh(seedCluster->eta()));
+    EtaScSeed.push_back(seedCluster->eta());
+    PhiScSeed.push_back(seedCluster->phi());
+    // HoE
+    HoEpf.push_back(getHCALClusterEnergy(*scIter, hcalPFClusters.product(), 0, 0.15)/scIter->energy());
+
+    // nearest rechit
+    const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(*scIter, hcalPFRecHits.product());
+    std::cout << "nearestHit:: " ;
+    if (isValidHCALPFRecHit(*scIter,nearestHit)) std::cout << "H/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+    else std::cout << "Not match , H/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+
+  } // loop over sc 
+
+  // EE
+  for (reco::SuperClusterCollection::const_iterator scIter=superClustersEE->begin();
+       scIter!=superClustersEE->end(); scIter++)
+  {
+    Nparts++;
+    isEB.push_back(false);
+    isEE.push_back(true);
+    ESc.push_back(scIter->energy());
+    EScRaw.push_back(scIter->rawEnergy());
+    EtSc.push_back(scIter->energy()/cosh(scIter->eta()));
+    EtaSc.push_back(scIter->eta());
+    PhiSc.push_back(scIter->phi());
+    ScNCl.push_back((int)scIter->clustersSize());
+    // seed
+    reco::CaloClusterPtr seedCluster = scIter->seed();
+    EScSeed.push_back(seedCluster->energy());
+    EtScSeed.push_back(seedCluster->energy()/cosh(seedCluster->eta()));
+    EtaScSeed.push_back(seedCluster->eta());
+    PhiScSeed.push_back(seedCluster->phi());
+    // HoE
+    HoEpf.push_back(getHCALClusterEnergy(*scIter, hcalPFClusters.product(), 0, 0.15)/scIter->energy());
+
+    // nearest rechit
+    const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(*scIter, hcalPFRecHits.product());
+    std::cout << "nearestHit:: " ;
+    if (isValidHCALPFRecHit(*scIter,nearestHit)) std::cout << "H/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+    else std::cout << "Not match , H/E=" << nearestHit->energy()/scIter->energy() << std::endl;
+
+
+
+  } // loop over sc 
+
+  tree->Fill();
+
+}
+
+void 
+ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{
   edm::Handle<reco::GsfElectronCollection> gsfElectrons;
   iEvent.getByLabel(electronCollection_,gsfElectrons);
   edm::LogInfo("")<<"\n\n =================> Treating event "<<iEvent.id()<<" Number of electrons "<<gsfElectrons.product()->size();
@@ -303,6 +479,12 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   edm::Handle<EcalRecHitCollection> endcapRecHits ;
   iEvent.getByLabel(endcapRecHitCollection_,endcapRecHits);
+
+  edm::Handle<reco::PFClusterCollection> hcalPFClusters;
+  iEvent.getByLabel(hcalPFClusterCollection_,hcalPFClusters);
+
+  edm::Handle<reco::PFRecHitCollection> hcalPFRecHits;
+  iEvent.getByLabel(hcalPFRecHitCollection_,hcalPFRecHits);
 
   edm::Handle<std::vector< PileupSummaryInfo > >  PupInfo;
   iEvent.getByLabel(edm::InputTag("addPileupInfo"), PupInfo);
@@ -794,5 +976,66 @@ double ShashlikTupleDumper::matchDRV2(reco::GenParticleCollection::const_iterato
   double dphi = TVector2::Phi_mpi_pi(mcPhi-pPhi);
   return TMath::Sqrt(deta*deta+dphi*dphi);
 }
+
+double ShashlikTupleDumper::getHCALClusterEnergy(const reco::SuperCluster & sc, const reco::PFClusterCollection *hcalpfcs, float EtMin, double hOverEConeSize) const 
+{
+  math::XYZVector vectorSC(sc.position().x(),sc.position().y(),sc.position().z());
+
+  double totalEnergy = 0.;
+  for( std::vector<reco::PFCluster>::const_iterator trItr = hcalpfcs->begin();
+       trItr != hcalpfcs->end() ; ++trItr){
+    math::XYZVector vectorHgcalHFECluster(trItr->position().x(),trItr->position().y(),trItr->position().z());
+    double dR = ROOT::Math::VectorUtil::DeltaR(vectorSC,vectorHgcalHFECluster);
+    if (dR<hOverEConeSize) totalEnergy += trItr->energy();
+  }
+
+  return totalEnergy;
+}
+
+const reco::PFRecHit* ShashlikTupleDumper::getNearestHCALPFRecHit(const reco::SuperCluster & sc, const reco::PFRecHitCollection * pfrechits) const
+{
+  
+  reco::PFRecHitCollection::const_iterator trIter = pfrechits->begin();   
+  reco::PFRecHitCollection::const_iterator nearestHit = trIter;
+  double dRmin = 999999;
+  math::XYZVector vectorSC(sc.position().x(),sc.position().y(),sc.position().z());
+  for (; trIter!=pfrechits->end(); ++trIter){
+    //if (trIter->depth()!=1) continue; // only take the first layer.
+    math::XYZVector vectorHcal(trIter->position().x(),trIter->position().y(),trIter->position().z());
+    double dR = ROOT::Math::VectorUtil::DeltaR(vectorSC,vectorHcal);
+    if (dR<dRmin) {
+      nearestHit = trIter;
+      dRmin = dR;
+    }
+  }
+
+  HcalDetId detid_nst(nearestHit->detId());
+  int ieta_nst = detid_nst.ieta();
+  int iphi_nst = detid_nst.iphi();
+  int depth_nst = nearestHit->depth();
+  std::cout << "ShashlikTupleDumper::getNearestHCALPFRecHit: " << "dR=" << dRmin << "; depth=" << depth_nst << "; ieta=" << ieta_nst << "; iphi=" << iphi_nst 
+            << std::endl;
+
+  return &(*nearestHit); 
+}
+
+
+bool ShashlikTupleDumper::isValidHCALPFRecHit(const reco::SuperCluster & sc, const reco::PFRecHit *hit) 
+{
+  // nearest should behind the sc
+  math::XYZVector vectorSC(sc.position().x(),sc.position().y(),sc.position().z());
+  math::XYZVector vectorHit(hit->position().x(),hit->position().y(),hit->position().z());
+  double dPhi = ROOT::Math::VectorUtil::DeltaPhi(vectorSC,vectorHit);
+  double dEta = fabs(vectorSC.eta()-vectorHit.eta());
+
+  if (   ((hit->layer()==1||hit->layer()==2)&&(fabs(dPhi)>0.087||fabs(dEta)>0.087))  //  HCAL_BARREL1 = 1,HCAL_BARREL2 = 2,
+      || ((hit->layer()==3 && fabs(hit->position().eta())<1.6)&&(fabs(dPhi)>0.087||fabs(dEta)>0.087)) //HCAL_ENDCAP = 3,
+      || ((hit->layer()==3 && fabs(hit->position().eta())>=1.6)&&(fabs(dPhi)>0.17||fabs(dEta)>0.17)) ) //HCAL_ENDCAP = 3,
+    return false;
+
+  return true;
+
+}
+
 
 

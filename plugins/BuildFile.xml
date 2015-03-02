@@ -4,6 +4,7 @@
 <use name="DataFormats/Common"/>
 <use name="DataFormats/EgammaCandidates"/>
 <use name="DataFormats/EgammaReco"/>
+<use name="DataFormats/HcalDetId"/>
 <use name="clhep"/>
 <use name="root"/>
 <library   file="*.cc" name="ShashlikAnalyzerShashlikAnalyzerPlugins">
