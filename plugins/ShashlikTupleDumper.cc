@@ -190,6 +190,11 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("HoE", &HoE); // hcalOverEcal()
   tree->Branch("HoE1", &HoE1); // hcalDepth1OverEcal1()
   tree->Branch("HoE2", &HoE2); // hcalDepth1OverEcal2()
+  tree->Branch("HoEpf", &HoEpf);
+  tree->Branch("HoEwtE", &HoEwtE);
+  tree->Branch("HoEsumE", &HoEsumE);
+  tree->Branch("HoEsumE2", &HoEsumE2);
+  tree->Branch("HoEsumE3", &HoEsumE3);
   tree->Branch("ecalDriven", &ecalDriven); //ecalDrivenSeed() 
   tree->Branch("trackDriven", &trackDriven); //trackerDrivenSeed() 
   tree->Branch("sigmaEtaEta", &sigmaEtaEta); // sigmaEtaEta()
@@ -236,6 +241,11 @@ ShashlikTupleDumper::clearQCDTreeBranchVectors()
   PhiScSeed.clear();
   ScNCl.clear();
   HoEpf.clear();
+  HoEsumE.clear();
+  HoEsumE2.clear();
+  HoEsumE3.clear();
+  HoEwtE.clear();
+
 }
 
 
@@ -290,6 +300,11 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   HoE.clear();
   HoE1.clear();
   HoE2.clear();
+  HoEpf.clear();
+  HoEsumE.clear();
+  HoEsumE2.clear();
+  HoEsumE3.clear();
+  HoEwtE.clear();
   ecalDriven.clear();
   trackDriven.clear();
   sigmaEtaEta.clear();
@@ -385,7 +400,7 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
     int BX = PVI->getBunchCrossing();
     if(BX == 0)
     {
-      NPV = PVI->getTrueNumInteractions();
+      NPV = PVI->getPU_NumInteractions();
       continue;
     }
   }
@@ -403,6 +418,9 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
   for (reco::SuperClusterCollection::const_iterator scIter=superClustersEB->begin();
        scIter!=superClustersEB->end(); scIter++)
   {
+    // et cut
+    double et = scIter->energy()/cosh(scIter->eta());
+    if (et<=10.0) continue;
     Nparts++;
     isEB.push_back(true);
     isEE.push_back(false);
@@ -461,6 +479,9 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
   for (reco::SuperClusterCollection::const_iterator scIter=superClustersEE->begin();
        scIter!=superClustersEE->end(); scIter++)
   {
+    // et cut
+    double et = scIter->energy()/cosh(scIter->eta());
+    if (et<=10.0) continue;
     Nparts++;
     isEB.push_back(false);
     isEE.push_back(true);
@@ -557,10 +578,14 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
     int BX = PVI->getBunchCrossing();
     if(BX == 0)
     {
-      NPV = PVI->getTrueNumInteractions();
+      NPV = PVI->getPU_NumInteractions();
       continue;
     }
   }
+
+  edm::ESHandle<CaloTowerConstituentsMap> ctmap;
+  iSetup.get<CaloGeometryRecord>().get(ctmap);
+  theTowerConstituentsMap_ = ctmap.product();
 
   // clear tree brach vectors
   clearTreeBranchVectors();  
@@ -677,12 +702,15 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
         }
       }
     } // loop over rec ele to look for the best one    
- 
+
+
     // if not found gsfElectron, try superClusters
     bool okScFound = false;
     double deltaRSc_min = 999999.;
     double ScOkRatio = 999999.;
     double deltaRSc = 999999.;
+    bool isInEB = false; 
+    bool isInEE = false; 
     // find best matched sc
     reco::SuperCluster bestSuperCluster;
     if (!okGsfFound){
@@ -704,6 +732,8 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
             bestSuperCluster=*scIter;
             deltaRSc=deltaR;
             okScFound = true;
+            isInEB = true;
+            isInEE = false;
           }
         }
       } // loop over sc to look for the best one 
@@ -725,6 +755,8 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
             bestSuperCluster=*scIter;
             deltaRSc=deltaR;
             okScFound = true;
+            isInEB = false; 
+            isInEE = true;
           }
         }
       } // loop over sc to look for the best one 
@@ -736,6 +768,8 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
     {
       FoundGsf.push_back(0);
       DeltaRGsf.push_back(-100);
+      isEB.push_back(isInEB);
+      isEE.push_back(isInEE);
       E.push_back(-100);
       Pt.push_back(-100);
       Px.push_back(-100);
@@ -761,8 +795,6 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
       dPhiSCAtCal.push_back(-100);
       trackFbrem.push_back(-100);
       scFbrem.push_back(-100);
-      isEB.push_back(false);
-      isEE.push_back(false);
       PTrackOut.push_back(-100);
       PtTrackOut.push_back(-100);
       PxTrackOut.push_back(-100);
@@ -808,6 +840,11 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
       EtScSeed.push_back(-100);
       EtaScSeed.push_back(-100);
       PhiScSeed.push_back(-100);
+      HoEpf.push_back(-100);
+      HoEwtE.push_back(-100);
+      HoEsumE.push_back(-100);
+      HoEsumE2.push_back(-100);
+      HoEsumE3.push_back(-100); 
     }
 
     // now, no gsf and no sc cases are skipped, 
@@ -831,6 +868,41 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
       EtScSeed.push_back(seedCluster->energy()/cosh(seedCluster->eta()));
       EtaScSeed.push_back(seedCluster->eta());
       PhiScSeed.push_back(seedCluster->phi());
+
+      // HoE
+      HoEpf.push_back(getHCALClusterEnergy(bestSuperCluster, hcalPFClusters.product(), 0, 0.15)/bestSuperCluster.energy());
+
+      // nearest rechit
+      const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(bestSuperCluster, hcalPFRecHits.product());
+      //std::cout << "nearestHit:: " ;
+      bool validHit = isValidHCALPFRecHit(bestSuperCluster,nearestHit);
+      if (validHit) {
+        //std::cout << "Hhit/E=" << nearestHit->energy()/bestSuperCluster.energy() << std::endl;
+        // HsumE
+        double HsumE = getHcalsumE(nearestHit, hcalPFRecHits.product());
+        //std::cout << "HsumE/E=" << HsumE/bestSuperCluster.energy() << std::endl;
+        // HsumE2
+        double HsumE2 = getHcalsumE2(nearestHit, hcalPFRecHits.product());
+        //std::cout << "HsumE2/E=" << HsumE2/bestSuperCluster.energy() << std::endl;
+        // HsumE3
+        double HsumE3 = getHcalsumE3(nearestHit, hcalPFRecHits.product());
+        //std::cout << "HsumE3/E=" << HsumE3/bestSuperCluster.energy() << std::endl;
+        // HwtE
+        double HwtE = getHcalwtE(nearestHit, hcalPFRecHits.product());
+        //std::cout << "HwtE/E=" << HwtE/bestSuperCluster.energy() << std::endl;
+        HoEsumE.push_back( HsumE/bestSuperCluster.energy());
+        HoEsumE2.push_back( HsumE2/bestSuperCluster.energy());
+        HoEsumE3.push_back( HsumE3/bestSuperCluster.energy());
+        HoEwtE.push_back( HwtE/bestSuperCluster.energy());
+      }
+      else {
+        //std::cout << "Not match , Hhit/E=" << nearestHit->energy()/bestSuperCluster.energy() << std::endl;
+        HoEsumE.push_back(0);
+        HoEsumE2.push_back(0);
+        HoEsumE3.push_back(0);
+        HoEwtE.push_back(0);
+      }
+
     }
 
     if (!okGsfFound){
@@ -889,6 +961,42 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
     EtScSeed.push_back(seedCluster->energy()/cosh(seedCluster->eta()));
     EtaScSeed.push_back(seedCluster->eta());
     PhiScSeed.push_back(seedCluster->phi()); 
+
+    // HoE
+    HoEpf.push_back(getHCALClusterEnergy(*superCluster, hcalPFClusters.product(), 0, 0.15)/superCluster->energy());
+
+    // nearest rechit
+    const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(*superCluster, hcalPFRecHits.product());
+    //std::cout << "nearestHit:: " ;
+    bool validHit = isValidHCALPFRecHit(*superCluster,nearestHit);
+    if (validHit) {
+      //std::cout << "Hhit/E=" << nearestHit->energy()/superCluster->energy() << std::endl;
+      // HsumE
+      double HsumE = getHcalsumE(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE/E=" << HsumE/superCluster->energy() << std::endl;
+      // HsumE2
+      double HsumE2 = getHcalsumE2(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE2/E=" << HsumE2/superCluster->energy() << std::endl;
+      // HsumE3
+      double HsumE3 = getHcalsumE3(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE3/E=" << HsumE3/superCluster->energy() << std::endl;
+      // HwtE
+      double HwtE = getHcalwtE(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HwtE/E=" << HwtE/superCluster->energy() << std::endl;
+      HoEsumE.push_back( HsumE/superCluster->energy());
+      HoEsumE2.push_back( HsumE2/superCluster->energy());
+      HoEsumE3.push_back( HsumE3/superCluster->energy());
+      HoEwtE.push_back( HwtE/superCluster->energy());
+    }
+    else {
+      //std::cout << "Not match , Hhit/E=" << nearestHit->energy()/superCluster->energy() << std::endl;
+      HoEsumE.push_back(0);
+      HoEsumE2.push_back(0);
+      HoEsumE3.push_back(0);
+      HoEwtE.push_back(0);
+    }
+
+
 
     // get hits energies and fractions
     const std::vector<std::pair<DetId,float> > seedHitsAndFracs = seedCluster->hitsAndFractions();
