@@ -37,15 +37,29 @@
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
+#include "DataFormats/EcalRecHit/interface/EcalSeverityLevel.h"
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/Math/interface/Vector3D.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/CaloTopology/interface/HcalTopology.h"
 #include "Geometry/CaloTopology/interface/CaloTowerTopology.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "Geometry/Records/interface/CaloTopologyRecord.h"
 #include "Math/Vector3D.h"
 #include "Math/VectorUtil.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "RecoLocalCalo/EcalRecAlgos/interface/EcalSeverityLevelAlgo.h"
+#include "RecoLocalCalo/EcalRecAlgos/interface/EcalSeverityLevelAlgoRcd.h"
+#include "RecoEcal/EgammaCoreTools/interface/EcalClusterTools.h"
+#include "CommonTools/Utils/interface/StringToEnumValue.h"
+#include "RecoEgamma/EgammaElectronAlgos/interface/ElectronUtilities.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/CommonDetUnit/interface/TrackingGeometry.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+
 //#include "CLHEP/Units/GlobalPhysicalConstants.h"
 #include <iostream>
 #include <vector>
@@ -76,6 +90,34 @@ ShashlikTupleDumper::ShashlikTupleDumper(const edm::ParameterSet& conf)
   matchingMotherIDs_ = conf.getParameter<std::vector<int> >("MatchingMotherID");
   printMCtable_ = conf.getParameter<bool>("printMCtable");
 
+  // helpers
+  ElectronHcalHelper::Configuration hcalCfgBarrel ;
+  hcalCfgBarrel.hOverEConeSize = 0.15; //conf_.getParameter<double>("hOverEConeSize") ;
+  hcalCfgBarrel.hOverEMethod = 0; // conf_.getParameter<int>("hOverEMethodBarrel") ;
+  hcalCfgBarrel.useTowers = true ;
+  hcalCfgBarrel.hcalTowers = conf.getParameter<edm::InputTag>("hcalTowers") ;
+  hcalCfgBarrel.hcalClusters = hcalPFClusterCollection_; //conf_.getParameter<edm::InputTag>("endcapHCALClusters") ;
+  hcalCfgBarrel.hOverEPtMin = 0;// conf_.getParameter<double>("hOverEPtMin") ;
+  hcalHelperBarrel_ = new ElectronHcalHelper(hcalCfgBarrel) ;
+
+  ElectronHcalHelper::Configuration hcalCfgEndcap ;
+  hcalCfgEndcap.hOverEConeSize = 0.15; // conf_.getParameter<double>("hOverEConeSize") ;
+  hcalCfgEndcap.hOverEMethod = 0; //conf_.getParameter<int>("hOverEMethodEndcap") ;
+  hcalCfgEndcap.useTowers = true ;
+  hcalCfgEndcap.hcalTowers = conf.getParameter<edm::InputTag>("hcalTowers") ;
+  hcalCfgEndcap.hcalClusters = hcalPFClusterCollection_; //conf_.getParameter<edm::InputTag>("endcapHCALClusters") ;
+  hcalCfgEndcap.hOverEPtMin = 0; // conf_.getParameter<double>("hOverEPtMin") ;
+  hcalHelperEndcap_ = new ElectronHcalHelper(hcalCfgEndcap) ;
+
+  const std::vector<std::string> flagnamesbarrel = conf.getParameter<std::vector<std::string> >("recHitFlagsToBeExcludedBarrel");
+  recHitFlagsToBeExcludedBarrel_ = StringToEnumValue<EcalRecHit::Flags>(flagnamesbarrel);
+  const std::vector<std::string> flagnamesendcaps = conf.getParameter<std::vector<std::string> >("recHitFlagsToBeExcludedEndcaps");
+  recHitFlagsToBeExcludedEndcaps_ = StringToEnumValue<EcalRecHit::Flags>(flagnamesendcaps);
+  const std::vector<std::string> severitynamesbarrel = conf.getParameter<std::vector<std::string> >("recHitSeverityToBeExcludedBarrel");
+  recHitSeverityToBeExcludedBarrel_ = StringToEnumValue<EcalSeverityLevel::SeverityLevel>(severitynamesbarrel);
+  const std::vector<std::string> severitynamesendcaps = conf.getParameter<std::vector<std::string> >("recHitSeverityToBeExcludedEndcaps");
+  recHitSeverityToBeExcludedEndcaps_ = StringToEnumValue<EcalSeverityLevel::SeverityLevel>(severitynamesendcaps);
+
  }
 
 void 
@@ -88,6 +130,9 @@ ShashlikTupleDumper::beginJob()
   else if (treeType_=="QCDtree"){
     bookQCDTree();
   }
+  else if (treeType_=="QCDScOnlytree"){
+    bookQCDScOnlyTree();
+  }
   else {
     throw cms::Exception("ShashlikTupleDumper") << "ShashlikTupleDumper::unknown treeType " << treeType_ << "." << std::endl; 
   }
@@ -96,6 +141,85 @@ ShashlikTupleDumper::beginJob()
 
 void
 ShashlikTupleDumper::bookQCDTree()
+{
+  histfile_->cd();
+  tree = new TTree("tree", "tree");
+
+  tree->Branch("NPV", &NPV,"NPV/I");
+  tree->Branch("Nparts", &Nparts,"Nparts/I");
+  tree->Branch("ESc", &ESc);
+  tree->Branch("EScRaw", &EScRaw);
+  tree->Branch("EtSc", &EtSc);
+  tree->Branch("EtaSc", &EtaSc);
+  tree->Branch("PhiSc", &PhiSc);
+  tree->Branch("EScSeed", &EScSeed);
+  tree->Branch("EtScSeed", &EtScSeed);
+  tree->Branch("EtaScSeed", &EtaScSeed);
+  tree->Branch("PhiScSeed", &PhiScSeed);
+  tree->Branch("ScSeedNHits", &ScSeedNHits);
+  tree->Branch("ScNCl", &ScNCl);
+  tree->Branch("E", &E);
+  tree->Branch("Pt", &Pt);
+  tree->Branch("Px", &Px);
+  tree->Branch("Py", &Py);
+  tree->Branch("Pz", &Pz);
+  tree->Branch("Eta", &Eta);
+  tree->Branch("Phi", &Phi);
+  tree->Branch("isEB", &isEB);
+  tree->Branch("isEE", &isEE);
+  tree->Branch("Charge", &Charge);
+  tree->Branch("PDG", &PDG);
+  tree->Branch("Classify", &Classify);
+  tree->Branch("HoE", &HoE); // hcalOverEcal()
+  tree->Branch("HoE1", &HoE1); // hcalDepth1OverEcal1()
+  tree->Branch("HoE2", &HoE2); // hcalDepth1OverEcal2()
+  tree->Branch("HoEpf", &HoEpf);
+  tree->Branch("HoEwtE", &HoEwtE);
+  tree->Branch("HoEsumE", &HoEsumE);
+  tree->Branch("HoEsumE2", &HoEsumE2);
+  tree->Branch("HoEsumE3", &HoEsumE3);
+  tree->Branch("HoEcone", &HoEcone); 
+  tree->Branch("ecalDriven", &ecalDriven); //ecalDrivenSeed() 
+  tree->Branch("trackDriven", &trackDriven); //trackerDrivenSeed() 
+  tree->Branch("sigmaEtaEta", &sigmaEtaEta); // sigmaEtaEta()
+  tree->Branch("sigmaIetaIeta", &sigmaIetaIeta); // sigmaIetaIeta()
+  tree->Branch("sigmaIphiIphi", &sigmaIphiIphi); // sigmaIphiIphi()
+  tree->Branch("r9", &r9); // r9()
+  tree->Branch("dEtaSCAtVtx", &dEtaSCAtVtx); // deltaEtaSuperClusterAtVtx 
+  tree->Branch("dEtaSCAtCal", &dEtaSCAtCal); // deltaEtaEleClusterAtCalo
+  tree->Branch("dPhiSCAtVtx", &dPhiSCAtVtx); // deltaPhiSuperClusterAtVtx 
+  tree->Branch("dPhiSCAtCal", &dPhiSCAtCal); // deltaPhiEleClusterAtCalo
+  tree->Branch("sigmaEtaEtaRec", &sigmaEtaEtaRec); // sigmaEtaEta()
+  tree->Branch("sigmaIetaIetaRec", &sigmaIetaIetaRec); // sigmaIetaIeta()
+  tree->Branch("sigmaIphiIphiRec", &sigmaIphiIphiRec); // sigmaIphiIphi()
+  tree->Branch("dEtaSCAtVtxRec", &dEtaSCAtVtxRec); // deltaEtaSuperClusterAtVtx 
+  tree->Branch("dEtaSCAtCalRec", &dEtaSCAtCalRec); // deltaEtaEleClusterAtCalo
+  tree->Branch("dPhiSCAtVtxRec", &dPhiSCAtVtxRec); // deltaPhiSuperClusterAtVtx 
+  tree->Branch("dPhiSCAtCalRec", &dPhiSCAtCalRec); // deltaPhiEleClusterAtCalo
+  tree->Branch("TrackVtxD0", &TrackVtxD0);
+  tree->Branch("TrackVtxDz", &TrackVtxDz);
+  tree->Branch("trackFbrem", &trackFbrem); // trackFbrem 
+  tree->Branch("scFbrem", &scFbrem); // superClusterFbrem
+  tree->Branch("PTrackOut", &PTrackOut);
+  tree->Branch("PtTrackOut", &PtTrackOut);
+  tree->Branch("PxTrackOut", &PxTrackOut);
+  tree->Branch("PyTrackOut", &PyTrackOut);
+  tree->Branch("PzTrackOut", &PzTrackOut);
+  tree->Branch("EtaTrackOut", &EtaTrackOut);
+  tree->Branch("PhiTrackOut", &PhiTrackOut);
+  tree->Branch("PTrackIn", &PTrackIn);
+  tree->Branch("PtTrackIn", &PtTrackIn);
+  tree->Branch("PxTrackIn", &PxTrackIn);
+  tree->Branch("PyTrackIn", &PyTrackIn);
+  tree->Branch("PzTrackIn", &PzTrackIn);
+  tree->Branch("EtaTrackIn", &EtaTrackIn);
+  tree->Branch("PhiTrackIn", &PhiTrackIn);
+
+
+}
+
+void
+ShashlikTupleDumper::bookQCDScOnlyTree()
 {
   histfile_->cd();
   tree = new TTree("tree", "tree");
@@ -120,6 +244,7 @@ ShashlikTupleDumper::bookQCDTree()
   tree->Branch("HoEsumE", &HoEsumE);
   tree->Branch("HoEsumE2", &HoEsumE2);
   tree->Branch("HoEsumE3", &HoEsumE3);
+  tree->Branch("HoEcone", &HoEcone); 
 
 }
 
@@ -195,6 +320,7 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("HoEsumE", &HoEsumE);
   tree->Branch("HoEsumE2", &HoEsumE2);
   tree->Branch("HoEsumE3", &HoEsumE3);
+  tree->Branch("HoEcone", &HoEcone); 
   tree->Branch("ecalDriven", &ecalDriven); //ecalDrivenSeed() 
   tree->Branch("trackDriven", &trackDriven); //trackerDrivenSeed() 
   tree->Branch("sigmaEtaEta", &sigmaEtaEta); // sigmaEtaEta()
@@ -205,6 +331,15 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("dEtaSCAtCal", &dEtaSCAtCal); // deltaEtaEleClusterAtCalo
   tree->Branch("dPhiSCAtVtx", &dPhiSCAtVtx); // deltaPhiSuperClusterAtVtx 
   tree->Branch("dPhiSCAtCal", &dPhiSCAtCal); // deltaPhiEleClusterAtCalo
+  tree->Branch("sigmaEtaEtaRec", &sigmaEtaEtaRec); // sigmaEtaEta()
+  tree->Branch("sigmaIetaIetaRec", &sigmaIetaIetaRec); // sigmaIetaIeta()
+  tree->Branch("sigmaIphiIphiRec", &sigmaIphiIphiRec); // sigmaIphiIphi()
+  tree->Branch("dEtaSCAtVtxRec", &dEtaSCAtVtxRec); // deltaEtaSuperClusterAtVtx 
+  tree->Branch("dEtaSCAtCalRec", &dEtaSCAtCalRec); // deltaEtaEleClusterAtCalo
+  tree->Branch("dPhiSCAtVtxRec", &dPhiSCAtVtxRec); // deltaPhiSuperClusterAtVtx 
+  tree->Branch("dPhiSCAtCalRec", &dPhiSCAtCalRec); // deltaPhiEleClusterAtCalo
+  tree->Branch("TrackVtxD0", &TrackVtxD0);
+  tree->Branch("TrackVtxDz", &TrackVtxDz);
   tree->Branch("trackFbrem", &trackFbrem); // trackFbrem 
   tree->Branch("scFbrem", &scFbrem); // superClusterFbrem
   tree->Branch("PTrackOut", &PTrackOut);
@@ -226,7 +361,7 @@ ShashlikTupleDumper::bookTree()
 }
 
 void
-ShashlikTupleDumper::clearQCDTreeBranchVectors()
+ShashlikTupleDumper::clearQCDScOnlyTreeBranchVectors()
 {
   isEB.clear();
   isEE.clear();  
@@ -245,6 +380,83 @@ ShashlikTupleDumper::clearQCDTreeBranchVectors()
   HoEsumE2.clear();
   HoEsumE3.clear();
   HoEwtE.clear();
+  HoEcone.clear();
+
+}
+
+void
+ShashlikTupleDumper::clearQCDTreeBranchVectors()
+{
+  isEB.clear();
+  isEE.clear();
+  ESc.clear();
+  EScRaw.clear();
+  EtSc.clear();
+  EtaSc.clear();
+  PhiSc.clear();
+  EScSeed.clear();
+  EtScSeed.clear();
+  EtaScSeed.clear();
+  PhiScSeed.clear();
+  ScSeedNHits.clear();
+  ScNCl.clear();
+  E.clear();
+  Pt.clear();
+  Px.clear();
+  Py.clear();
+  Pz.clear();
+  Eta.clear();
+  Phi.clear();
+  isEB.clear();
+  isEE.clear();
+  Charge.clear();
+  PDG.clear();
+  Classify.clear();
+  HoE.clear();
+  HoE1.clear();
+  HoE2.clear();
+  HoEpf.clear();
+  HoEsumE.clear();
+  HoEsumE2.clear();
+  HoEsumE3.clear();
+  HoEwtE.clear();
+  HoEcone.clear();
+  ecalDriven.clear();
+  trackDriven.clear();
+  sigmaEtaEta.clear();
+  sigmaIetaIeta.clear();
+  sigmaIphiIphi.clear();
+  r9.clear();
+  dEtaSCAtVtx.clear();
+  dEtaSCAtCal.clear();
+  dPhiSCAtVtx.clear();
+  dPhiSCAtCal.clear();
+  sigmaEtaEtaRec.clear();
+  sigmaIetaIetaRec.clear();
+  sigmaIphiIphiRec.clear();
+  dEtaSCAtVtxRec.clear();
+  dEtaSCAtCalRec.clear();
+  dPhiSCAtVtxRec.clear();
+  dPhiSCAtCalRec.clear();
+  TrackVtxD0.clear();
+  TrackVtxDz.clear();
+  trackFbrem.clear();
+  scFbrem.clear();
+  PTrackOut.clear();
+  PtTrackOut.clear();
+  PxTrackOut.clear();
+  PyTrackOut.clear();
+  PzTrackOut.clear();
+  EtaTrackOut.clear();
+  PhiTrackOut.clear();
+  PTrackIn.clear();
+  PtTrackIn.clear();
+  PxTrackIn.clear();
+  PyTrackIn.clear();
+  PzTrackIn.clear();
+  EtaTrackIn.clear();
+  PhiTrackIn.clear();
+
 
 }
 
@@ -305,6 +517,7 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   HoEsumE2.clear();
   HoEsumE3.clear();
   HoEwtE.clear();
+  HoEcone.clear();
   ecalDriven.clear();
   trackDriven.clear();
   sigmaEtaEta.clear();
@@ -315,6 +528,15 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   dEtaSCAtCal.clear();
   dPhiSCAtVtx.clear();
   dPhiSCAtCal.clear();
+  sigmaEtaEtaRec.clear();
+  sigmaIetaIetaRec.clear();
+  sigmaIphiIphiRec.clear();
+  dEtaSCAtVtxRec.clear();
+  dEtaSCAtCalRec.clear();
+  dPhiSCAtVtxRec.clear();
+  dPhiSCAtCalRec.clear();
+  TrackVtxD0.clear();
+  TrackVtxDz.clear();
   trackFbrem.clear();
   scFbrem.clear();
   PTrackOut.clear();
@@ -368,6 +590,9 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   else if (treeType_=="QCDtree"){
     FillQCDTree(iEvent,iSetup);
   }
+  else if (treeType_=="QCDScOnlytree"){
+    FillQCDScOnlyTree(iEvent,iSetup);
+  }  
   else {
     throw cms::Exception("ShashlikTupleDumper") << "ShashlikTupleDumper::unknown treeType " << treeType_ << "." << std::endl;
   }
@@ -376,6 +601,190 @@ ShashlikTupleDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
 void
 ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{
+
+  edm::Handle<reco::GsfElectronCollection> gsfElectrons;
+  iEvent.getByLabel(electronCollection_,gsfElectrons);
+
+  edm::Handle<reco::SuperClusterCollection> superClustersEB;
+  iEvent.getByLabel(superClusterEB_,superClustersEB);
+
+  edm::Handle<reco::SuperClusterCollection> superClustersEE;
+  iEvent.getByLabel(superClusterEE_,superClustersEE);
+
+  edm::Handle<reco::PFClusterCollection> hcalPFClusters;
+  iEvent.getByLabel(hcalPFClusterCollection_,hcalPFClusters);
+
+  edm::Handle<reco::PFRecHitCollection> hcalPFRecHits;
+  iEvent.getByLabel(hcalPFRecHitCollection_,hcalPFRecHits);
+
+  edm::Handle<std::vector< PileupSummaryInfo > >  PupInfo;
+  iEvent.getByLabel(edm::InputTag("addPileupInfo"), PupInfo);
+
+  std::vector<PileupSummaryInfo>::const_iterator PVI;
+  NPV = -1;
+  for(PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI)
+  {
+    int BX = PVI->getBunchCrossing();
+    if(BX == 0)
+    {
+      NPV = PVI->getPU_NumInteractions();
+      continue;
+    }
+  }
+
+  edm::ESHandle<CaloTowerConstituentsMap> ctmap;
+  iSetup.get<CaloGeometryRecord>().get(ctmap);
+  theTowerConstituentsMap_ = ctmap.product();
+
+  hcalHelperBarrel_->checkSetup(iSetup) ;
+  hcalHelperBarrel_->readEvent(iEvent) ;
+
+
+  // clear tree brach vectors
+  clearQCDTreeBranchVectors();
+
+  Nparts=0;
+
+  // loopover all gsfElectrons
+  for (reco::GsfElectronCollection::const_iterator gsfIter=gsfElectrons->begin();
+       gsfIter!=gsfElectrons->end(); gsfIter++)
+  {
+    if (gsfIter->pt()<10) continue;
+    Nparts++;
+    // gsfElectron info
+    E.push_back(gsfIter->energy());
+    Pt.push_back(gsfIter->pt());
+    Px.push_back(gsfIter->px());
+    Py.push_back(gsfIter->py());
+    Pz.push_back(gsfIter->pz());
+    Eta.push_back(gsfIter->eta());
+    Phi.push_back(gsfIter->phi());
+    isEB.push_back(gsfIter->isEB());
+    isEE.push_back(gsfIter->isEE());
+    Charge.push_back((double)gsfIter->charge());
+    PDG.push_back(gsfIter->pdgId());
+    Classify.push_back(gsfIter->classification());
+    HoE.push_back(gsfIter->hcalOverEcal());
+    HoE1.push_back(gsfIter->hcalDepth1OverEcal());
+    HoE2.push_back(gsfIter->hcalDepth2OverEcal());
+    ecalDriven.push_back(gsfIter->ecalDrivenSeed());
+    trackDriven.push_back(gsfIter->trackerDrivenSeed());
+    sigmaEtaEta.push_back(gsfIter->sigmaEtaEta());
+    sigmaIetaIeta.push_back(gsfIter->sigmaIetaIeta());
+    sigmaIphiIphi.push_back(gsfIter->sigmaIphiIphi());
+    r9.push_back(gsfIter->r9());
+    dEtaSCAtVtx.push_back(gsfIter->deltaEtaSuperClusterTrackAtVtx());
+    dEtaSCAtCal.push_back(gsfIter->deltaEtaEleClusterTrackAtCalo());
+    dPhiSCAtVtx.push_back(gsfIter->deltaPhiSuperClusterTrackAtVtx());
+    dPhiSCAtCal.push_back(gsfIter->deltaPhiEleClusterTrackAtCalo());
+    TrackVtxD0.push_back(gsfIter->gsfTrack()->dxy());
+    TrackVtxDz.push_back(gsfIter->gsfTrack()->dz());
+    trackFbrem.push_back(gsfIter->trackFbrem());
+    scFbrem.push_back(gsfIter->superClusterFbrem());
+
+    // superCluster
+    reco::SuperClusterRef superCluster = gsfIter->superCluster();
+
+    // now fill the gsf electron info
+    ESc.push_back(superCluster->energy());
+    EScRaw.push_back(superCluster->rawEnergy());
+    EtSc.push_back(superCluster->energy()/cosh(superCluster->eta()));
+    EtaSc.push_back(superCluster->eta());
+    PhiSc.push_back(superCluster->phi());
+
+    // seed
+    reco::CaloClusterPtr seedCluster = superCluster->seed();
+    EScSeed.push_back(seedCluster->energy());
+    EtScSeed.push_back(seedCluster->energy()/cosh(seedCluster->eta()));
+    EtaScSeed.push_back(seedCluster->eta());
+    PhiScSeed.push_back(seedCluster->phi());
+
+    // HoE
+    HoEpf.push_back(getHCALClusterEnergy(*superCluster, hcalPFClusters.product(), 0, 0.15)/superCluster->energy());
+
+    // Hcone
+    double Hcone1(0);
+    double Hcone2(0);
+    if (gsfIter->isEB()){ 
+      Hcone1 = hcalHelperBarrel_->hcalESumDepth1(*superCluster);
+      Hcone2 = hcalHelperBarrel_->hcalESumDepth2(*superCluster);
+    } else {
+      Hcone1 = hcalHelperEndcap_->hcalESumDepth1(*superCluster);
+      Hcone2 = hcalHelperEndcap_->hcalESumDepth2(*superCluster);
+    }
+    HoEcone.push_back((Hcone1+Hcone2)/superCluster->energy());
+
+    // nearest rechit
+    const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(*superCluster, hcalPFRecHits.product());
+    //std::cout << "nearestHit:: " ;
+    bool validHit = isValidHCALPFRecHit(*superCluster,nearestHit);
+    if (validHit) {
+      //std::cout << "Hhit/E=" << nearestHit->energy()/superCluster->energy() << std::endl;
+      // HsumE
+      double HsumE = getHcalsumE(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE/E=" << HsumE/superCluster->energy() << std::endl;
+      // HsumE2
+      double HsumE2 = getHcalsumE2(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE2/E=" << HsumE2/superCluster->energy() << std::endl;
+      // HsumE3
+      double HsumE3 = getHcalsumE3(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HsumE3/E=" << HsumE3/superCluster->energy() << std::endl;
+      // HwtE
+      double HwtE = getHcalwtE(nearestHit, hcalPFRecHits.product());
+      //std::cout << "HwtE/E=" << HwtE/superCluster->energy() << std::endl;
+      HoEsumE.push_back( HsumE/superCluster->energy());
+      HoEsumE2.push_back( HsumE2/superCluster->energy());
+      HoEsumE3.push_back( HsumE3/superCluster->energy());
+      HoEwtE.push_back( HwtE/superCluster->energy());
+    }
+
+    reco::GsfTrackRef gsfTrack = gsfIter->gsfTrack();
+    if (!gsfTrack)
+    {
+      PTrackOut.push_back(-100);
+      PtTrackOut.push_back(-100);
+      PxTrackOut.push_back(-100);
+      PyTrackOut.push_back(-100);
+      PzTrackOut.push_back(-100);
+      EtaTrackOut.push_back(-100);
+      PhiTrackOut.push_back(-100);
+      PTrackIn.push_back(-100);
+      PtTrackIn.push_back(-100);
+      PxTrackIn.push_back(-100);
+      PyTrackIn.push_back(-100);
+      PzTrackIn.push_back(-100);
+      EtaTrackIn.push_back(-100);
+      PhiTrackIn.push_back(-100);
+      continue;
+    }
+
+
+    PTrackOut.push_back(gsfTrack->outerMomentum().R());
+    PtTrackOut.push_back(gsfTrack->outerMomentum().Rho());
+    PxTrackOut.push_back(gsfTrack->outerMomentum().X());
+    PyTrackOut.push_back(gsfTrack->outerMomentum().Y());
+    PzTrackOut.push_back(gsfTrack->outerMomentum().Z());
+    EtaTrackOut.push_back(gsfTrack->outerMomentum().eta());
+    PhiTrackOut.push_back(gsfTrack->outerMomentum().phi());
+    PTrackIn.push_back(gsfTrack->innerMomentum().R());
+    PtTrackIn.push_back(gsfTrack->innerMomentum().Rho());
+    PxTrackIn.push_back(gsfTrack->innerMomentum().X());
+    PyTrackIn.push_back(gsfTrack->innerMomentum().Y());
+    PzTrackIn.push_back(gsfTrack->innerMomentum().Z());
+    EtaTrackIn.push_back(gsfTrack->innerMomentum().eta());
+    PhiTrackIn.push_back(gsfTrack->innerMomentum().phi());
+
+
+
+  } // loop over gsfElectrons 
+
+  tree->Fill();
+}
+
+
+void
+ShashlikTupleDumper::FillQCDScOnlyTree(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
 
   edm::Handle<reco::SuperClusterCollection> superClustersEB;
@@ -409,8 +818,12 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
   iSetup.get<CaloGeometryRecord>().get(ctmap);
   theTowerConstituentsMap_ = ctmap.product();
 
+  hcalHelperBarrel_->checkSetup(iSetup) ;
+  hcalHelperBarrel_->readEvent(iEvent) ;
+
+
   // clear tree brach vectors
-  clearQCDTreeBranchVectors();
+  clearQCDScOnlyTreeBranchVectors();
 
   Nparts=0;
 
@@ -438,6 +851,11 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
     PhiScSeed.push_back(seedCluster->phi());
     // HoE
     HoEpf.push_back(getHCALClusterEnergy(*scIter, hcalPFClusters.product(), 0, 0.15)/scIter->energy());
+    // Hcone
+    double Hcone1 = hcalHelperBarrel_->hcalESumDepth1(*scIter);
+    double Hcone2 = hcalHelperBarrel_->hcalESumDepth2(*scIter);
+    HoEcone.push_back((Hcone1+Hcone2)/scIter->energy());
+
 
     // nearest rechit
     const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(*scIter, hcalPFRecHits.product());
@@ -457,6 +875,8 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
       // HwtE
       double HwtE = getHcalwtE(nearestHit, hcalPFRecHits.product());
       //std::cout << "HwtE/E=" << HwtE/scIter->energy() << std::endl;
+      // H cone 
+      //double Hcone = 
       HoEsumE.push_back( HsumE/scIter->energy());
       HoEsumE2.push_back( HsumE2/scIter->energy());
       HoEsumE3.push_back( HsumE3/scIter->energy());
@@ -500,6 +920,11 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
     // HoE
     HoEpf.push_back(getHCALClusterEnergy(*scIter, hcalPFClusters.product(), 0, 0.15)/scIter->energy());
 
+    // Hcone
+    double Hcone1 = hcalHelperEndcap_->hcalESumDepth1(*scIter);
+    double Hcone2 = hcalHelperEndcap_->hcalESumDepth2(*scIter);
+    HoEcone.push_back((Hcone1+Hcone2)/scIter->energy());
+
     // nearest rechit
     const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(*scIter, hcalPFRecHits.product());
     //std::cout << "nearestHit:: " ;
@@ -522,7 +947,6 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
       HoEsumE2.push_back( HsumE2/scIter->energy());
       HoEsumE3.push_back( HsumE3/scIter->energy());
       HoEwtE.push_back( HwtE/scIter->energy());
-
     }
     else {
       //std::cout << "Not match , Hhit/E=" << nearestHit->energy()/scIter->energy() << std::endl;
@@ -531,8 +955,6 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
       HoEsumE3.push_back(0);
       HoEwtE.push_back(0);
     }
-
-
 
   } // loop over sc 
 
@@ -587,8 +1009,31 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
   iSetup.get<CaloGeometryRecord>().get(ctmap);
   theTowerConstituentsMap_ = ctmap.product();
 
+  hcalHelperBarrel_->checkSetup(iSetup) ;
+  hcalHelperBarrel_->readEvent(iEvent) ;
+
+  edm::ESHandle<CaloGeometry> caloGeom ;
+  edm::ESHandle<CaloTopology> caloTopo ;
+  iSetup.get<CaloGeometryRecord>().get(caloGeom);
+  iSetup.get<CaloTopologyRecord>().get(caloTopo);
+
+  edm::ESHandle<EcalSeverityLevelAlgo> sevLevel;
+  iSetup.get<EcalSeverityLevelAlgoRcd>().get(sevLevel);
+
+  // get the beamspot from the Event:
+  edm::Handle<reco::BeamSpot> recoBeamSpotHandle ;
+  iEvent.getByLabel(edm::InputTag("offlineBeamSpot"),recoBeamSpotHandle) ;
+  beamspot_ = recoBeamSpotHandle.product() ;
+
+  edm::ESHandle<TrackerGeometry> trackerHandle ;
+  iSetup.get<TrackerDigiGeometryRecord>().get(trackerHandle);
+
+  edm::ESHandle<MagneticField> magField ;  
+  iSetup.get<IdealMagneticFieldRecord>().get(magField);
+
+
   // clear tree brach vectors
-  clearTreeBranchVectors();  
+  clearTreeBranchVectors(); 
 
   int mcNum=0;
   bool matchingMotherID;
@@ -793,6 +1238,8 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
       dEtaSCAtCal.push_back(-100);
       dPhiSCAtVtx.push_back(-100);
       dPhiSCAtCal.push_back(-100);
+      TrackVtxD0.push_back(-100);
+      TrackVtxDz.push_back(-100);
       trackFbrem.push_back(-100);
       scFbrem.push_back(-100);
       PTrackOut.push_back(-100);
@@ -872,6 +1319,18 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
       // HoE
       HoEpf.push_back(getHCALClusterEnergy(bestSuperCluster, hcalPFClusters.product(), 0, 0.15)/bestSuperCluster.energy());
 
+      // Hcone
+      double Hcone1(0);
+      double Hcone2(0);
+      if (isInEB){
+        Hcone1 = hcalHelperBarrel_->hcalESumDepth1(bestSuperCluster);
+        Hcone2 = hcalHelperBarrel_->hcalESumDepth2(bestSuperCluster);
+      } else {
+        Hcone1 = hcalHelperEndcap_->hcalESumDepth1(bestSuperCluster);
+        Hcone2 = hcalHelperEndcap_->hcalESumDepth2(bestSuperCluster);
+      }
+      HoEcone.push_back((Hcone1+Hcone2)/bestSuperCluster.energy());
+
       // nearest rechit
       const reco::PFRecHit* nearestHit = getNearestHCALPFRecHit(bestSuperCluster, hcalPFRecHits.product());
       //std::cout << "nearestHit:: " ;
@@ -890,6 +1349,7 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
         // HwtE
         double HwtE = getHcalwtE(nearestHit, hcalPFRecHits.product());
         //std::cout << "HwtE/E=" << HwtE/bestSuperCluster.energy() << std::endl;
+
         HoEsumE.push_back( HsumE/bestSuperCluster.energy());
         HoEsumE2.push_back( HsumE2/bestSuperCluster.energy());
         HoEsumE3.push_back( HsumE3/bestSuperCluster.energy());
@@ -942,6 +1402,8 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
     dEtaSCAtCal.push_back(bestGsfElectron.deltaEtaEleClusterTrackAtCalo());
     dPhiSCAtVtx.push_back(bestGsfElectron.deltaPhiSuperClusterTrackAtVtx());
     dPhiSCAtCal.push_back(bestGsfElectron.deltaPhiEleClusterTrackAtCalo());
+    TrackVtxD0.push_back(bestGsfElectron.gsfTrack()->dxy());
+    TrackVtxDz.push_back(bestGsfElectron.gsfTrack()->dz());
     trackFbrem.push_back(bestGsfElectron.trackFbrem());
     scFbrem.push_back(bestGsfElectron.superClusterFbrem());
 
@@ -996,7 +1458,74 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
       HoEwtE.push_back(0);
     }
 
+    // Hcone
+    double Hcone1(0);
+    double Hcone2(0); 
+    if (bestGsfElectron.isEB()){
+      Hcone1 = hcalHelperBarrel_->hcalESumDepth1(bestSuperCluster);
+      Hcone2 = hcalHelperBarrel_->hcalESumDepth2(bestSuperCluster);
+    } else {
+      Hcone1 = hcalHelperEndcap_->hcalESumDepth1(bestSuperCluster);
+      Hcone2 = hcalHelperEndcap_->hcalESumDepth2(bestSuperCluster);
+    }
+    HoEcone.push_back((Hcone1+Hcone2)/bestSuperCluster.energy());
 
+    // recalculate eid variables
+
+    const CaloTopology * topology = caloTopo.product() ;
+    const CaloGeometry * geometry = caloGeom.product() ;
+    const EcalRecHitCollection * recHits = 0 ;
+    std::vector<int> recHitFlagsToBeExcluded ;
+    std::vector<int> recHitSeverityToBeExcluded ;
+    const EcalSeverityLevelAlgo * severityLevelAlgo = sevLevel.product() ;
+    if (bestGsfElectron.isEB())
+    {
+      recHits = barrelRecHits.product() ;
+      recHitFlagsToBeExcluded = recHitFlagsToBeExcludedBarrel_ ;
+      recHitSeverityToBeExcluded = recHitSeverityToBeExcludedBarrel_ ;
+    }
+    else
+    {
+      recHits = endcapRecHits.product() ;
+      recHitFlagsToBeExcluded = recHitFlagsToBeExcludedEndcaps_ ;
+      recHitSeverityToBeExcluded = recHitSeverityToBeExcludedEndcaps_ ;
+    }
+
+    std::vector<float> covariances = EcalClusterTools::covariances(*seedCluster,recHits,topology,geometry,recHitFlagsToBeExcluded,recHitSeverityToBeExcluded,severityLevelAlgo) ;
+    std::vector<float> localCovariances = EcalClusterTools::localCovariances(*seedCluster,recHits,topology,recHitFlagsToBeExcluded,recHitSeverityToBeExcluded,severityLevelAlgo) ;
+   
+    sigmaEtaEtaRec.push_back(sqrt(covariances[0]));
+    sigmaIetaIetaRec.push_back(sqrt(localCovariances[0]));
+    sigmaIphiIphiRec.push_back(sqrt(localCovariances[2]));
+
+    // track-match
+/*
+    ElectronData electronData(bestGsfElectron.core(),*beamspot_) ;
+
+    MultiTrajectoryStateTransform  mtsTransform(trackerHandle.product(),magField.product());
+
+    electronData.calculateTSOS( mtsTransform, eventSetupData_->constraintAtVtx )
+
+    CaloClusterPtr elbcRef = electronData_->getEleBasicCluster(eventSetupData_->mtsTransform) ;
+ 
+    EleRelPointPair scAtVtx(bestSuperCluster.position(),electronData_->sclPos,beamspot_->position()) ;
+    //tcMatching.deltaEtaSuperClusterAtVtx = scAtVtx.dEta() ;
+    //tcMatching.deltaPhiSuperClusterAtVtx = scAtVtx.dPhi() ;
+
+    EleRelPointPair seedAtCalo(seedCluster->position(),electronData_->seedPos,beamspot_->position()) ;
+    //tcMatching.deltaEtaSeedClusterAtCalo = seedAtCalo.dEta() ;
+    //tcMatching.deltaPhiSeedClusterAtCalo = seedAtCalo.dPhi() ;
+
+    EleRelPointPair ecAtCalo(elbcRef->position(),electronData_->elePos,beamspot_->position()) ;
+    //tcMatching.deltaEtaEleClusterAtCalo = ecAtCalo.dEta() ;
+    //tcMatching.deltaPhiEleClusterAtCalo = ecAtCalo.dPhi() ;
+
+
+    dEtaSCAtVtxRec.push_back(bestGsfElectron.deltaEtaSuperClusterTrackAtVtx());
+    dEtaSCAtCalRec.push_back(bestGsfElectron.deltaEtaEleClusterTrackAtCalo());
+    dPhiSCAtVtxRec.push_back(bestGsfElectron.deltaPhiSuperClusterTrackAtVtx());
+    dPhiSCAtCalRec.push_back(bestGsfElectron.deltaPhiEleClusterTrackAtCalo());
+*/
 
     // get hits energies and fractions
     const std::vector<std::pair<DetId,float> > seedHitsAndFracs = seedCluster->hitsAndFractions();

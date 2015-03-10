@@ -27,6 +27,8 @@
 #include "DataFormats/ParticleFlowReco/interface/PFRecHit.h"
 #include "DataFormats/ParticleFlowReco/interface/PFRecHitFwd.h"
 #include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
+#include "RecoEgamma/EgammaElectronAlgos/interface/ElectronHcalHelper.h"
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
 
 class TFile;
 class TTree;
@@ -45,10 +47,13 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
 
   void bookTree();
   void bookQCDTree();
+  void bookQCDScOnlyTree();
   void clearTreeBranchVectors();
   void clearQCDTreeBranchVectors();
+  void clearQCDScOnlyTreeBranchVectors();
   void FillTree(const edm::Event& e, const edm::EventSetup& c);
   void FillQCDTree(const edm::Event& e, const edm::EventSetup& c);
+  void FillQCDScOnlyTree(const edm::Event& e, const edm::EventSetup& c);
 
   double matchDR(reco::GenParticleCollection::const_iterator pmc, reco::GsfElectronCollection::const_iterator prec);
   double matchDRV2(reco::GenParticleCollection::const_iterator pmc, reco::GsfElectronCollection::const_iterator prec);
@@ -100,13 +105,17 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   std::vector<bool> isEB, isEE, ecalDriven, trackDriven;
   std::vector<float> HoE, HoE1, HoE2, sigmaEtaEta, sigmaIetaIeta, sigmaIphiIphi, r9;
   std::vector<float> dEtaSCAtVtx, dEtaSCAtCal, dPhiSCAtVtx, dPhiSCAtCal, trackFbrem, scFbrem;
+  std::vector<double> TrackVtxD0, TrackVtxDz;
+
+  std::vector<float> sigmaEtaEtaRec, sigmaIetaIetaRec, sigmaIphiIphiRec;
+  std::vector<float> dEtaSCAtVtxRec, dEtaSCAtCalRec, dPhiSCAtVtxRec, dPhiSCAtCalRec;
 
   std::vector<double> PTrackOut, PtTrackOut, PxTrackOut, PyTrackOut, PzTrackOut;
   std::vector<double> EtaTrackOut, PhiTrackOut;
 
   std::vector<double> PTrackIn, PtTrackIn, PxTrackIn, PyTrackIn, PzTrackIn;
   std::vector<double> EtaTrackIn, PhiTrackIn;
-  std::vector<double> HoEpf, HoEsumE, HoEwtE, HoEsumE2, HoEsumE3;
+  std::vector<double> HoEpf, HoEsumE, HoEwtE, HoEsumE2, HoEsumE3, HoEcone;
 
   std::string outputFile_;
   std::string treeType_;
@@ -127,6 +136,17 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   bool printMCtable_;
 
   const CaloTowerConstituentsMap* theTowerConstituentsMap_;
+  ElectronHcalHelper * hcalHelperBarrel_ ;
+  ElectronHcalHelper * hcalHelperEndcap_ ;
+
+
+  std::vector<int> recHitFlagsToBeExcludedBarrel_ ;
+  std::vector<int> recHitFlagsToBeExcludedEndcaps_ ;
+  std::vector<int> recHitSeverityToBeExcludedBarrel_ ;
+  std::vector<int> recHitSeverityToBeExcludedEndcaps_ ;
+
+  const reco::BeamSpot * beamspot_ ;
+
 
  };
 
