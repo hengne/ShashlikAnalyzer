@@ -32,6 +32,7 @@
 
 class TFile;
 class TTree;
+class TF1;
 
 class ShashlikTupleDumper : public edm::EDAnalyzer
 {
@@ -104,11 +105,15 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   std::vector<int> PDG, Classify;
   std::vector<bool> isEB, isEE, ecalDriven, trackDriven;
   std::vector<float> HoE, HoE1, HoE2, sigmaEtaEta, sigmaIetaIeta, sigmaIphiIphi, r9;
-  std::vector<float> dEtaSCAtVtx, dEtaSCAtCal, dPhiSCAtVtx, dPhiSCAtCal, trackFbrem, scFbrem;
+  std::vector<float> dEtaSCAtVtx, dEtaSCAtCal, dEtaSeedAtCal;
+  std::vector<float> dPhiSCAtVtx, dPhiSCAtCal, dPhiSeedAtCal;
+  std::vector<float> trackFbrem, scFbrem;
   std::vector<double> TrackVtxD0, TrackVtxDz;
 
   std::vector<float> sigmaEtaEtaRec, sigmaIetaIetaRec, sigmaIphiIphiRec;
-  std::vector<float> dEtaSCAtVtxRec, dEtaSCAtCalRec, dPhiSCAtVtxRec, dPhiSCAtCalRec;
+  std::vector<float> dEtaSCAtVtxRec, dEtaSCAtCalRec, dEtaSeedAtCalRec;
+  std::vector<float> dPhiSCAtVtxRec, dPhiSCAtCalRec, dPhiSeedAtCalRec;
+  std::vector<float> dEtaSCAtVtxCorr;
 
   std::vector<double> PTrackOut, PtTrackOut, PxTrackOut, PyTrackOut, PzTrackOut;
   std::vector<double> EtaTrackOut, PhiTrackOut;
@@ -147,6 +152,11 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
 
   const reco::BeamSpot * beamspot_ ;
 
+
+  // correction functions
+
+  // corr function for deltaEtaScVtx
+  TF1* func_corrDeltaEtaScVtx;  
 
  };
 

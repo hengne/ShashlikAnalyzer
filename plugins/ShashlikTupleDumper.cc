@@ -68,6 +68,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TVector2.h"
+#include "TF1.h"
 
 
 DEFINE_FWK_MODULE(ShashlikTupleDumper);
@@ -136,7 +137,19 @@ ShashlikTupleDumper::beginJob()
   else {
     throw cms::Exception("ShashlikTupleDumper") << "ShashlikTupleDumper::unknown treeType " << treeType_ << "." << std::endl; 
   }
-  
+
+  // initialize correction functions
+
+  // corr deltaEtaScAtVtx
+  char func[10000];
+  sprintf(func,"gaus(0)");
+  for (int i=1;i<20; i++){
+    sprintf(func, "%s+gaus(%d)", func, i*3);
+  }
+  func_corrDeltaEtaScVtx = new TF1("func_corrDeltaEtaScVtx", func, 1.47, 3.0);  
+  double params[] = {0.00801413,1.508,0.0242909,0.023352,1.584,0.106734,0.0028098,1.66,0.0317669,0.0089099,1.736,0.0390202,0.0067355,1.812,0.0348707,0.00602966,1.888,0.0390016,0.00299287,1.964,0.0307741,0.0360896,2.04,0.250584,0.0403011,2.116,0.310596,-0.0403029,2.192,0.187177,0.0496289,2.268,0.217546,0.0214814,2.344,0.261552,0.0202145,2.42,0.207958,0.0160461,2.496,0.30491,0.030677,2.572,0.141072,-0.193856,2.648,0.199843,0.308114,2.724,0.229894,-0.181284,2.8,-0.668033,0.761307,2.876,-5.14181e-05,13.613,2.952,0.00153964};
+  func_corrDeltaEtaScVtx->SetParameters(params);
+
 }
 
 void
@@ -187,8 +200,10 @@ ShashlikTupleDumper::bookQCDTree()
   tree->Branch("r9", &r9); // r9()
   tree->Branch("dEtaSCAtVtx", &dEtaSCAtVtx); // deltaEtaSuperClusterAtVtx 
   tree->Branch("dEtaSCAtCal", &dEtaSCAtCal); // deltaEtaEleClusterAtCalo
+  tree->Branch("dEtaSeedAtCal", &dEtaSeedAtCal); // deltaEtaEleClusterAtCalo
   tree->Branch("dPhiSCAtVtx", &dPhiSCAtVtx); // deltaPhiSuperClusterAtVtx 
   tree->Branch("dPhiSCAtCal", &dPhiSCAtCal); // deltaPhiEleClusterAtCalo
+  tree->Branch("dPhiSeedAtCal", &dPhiSeedAtCal); // deltaPhiEleClusterAtCalo
   tree->Branch("sigmaEtaEtaRec", &sigmaEtaEtaRec); // sigmaEtaEta()
   tree->Branch("sigmaIetaIetaRec", &sigmaIetaIetaRec); // sigmaIetaIeta()
   tree->Branch("sigmaIphiIphiRec", &sigmaIphiIphiRec); // sigmaIphiIphi()
@@ -196,6 +211,7 @@ ShashlikTupleDumper::bookQCDTree()
   tree->Branch("dEtaSCAtCalRec", &dEtaSCAtCalRec); // deltaEtaEleClusterAtCalo
   tree->Branch("dPhiSCAtVtxRec", &dPhiSCAtVtxRec); // deltaPhiSuperClusterAtVtx 
   tree->Branch("dPhiSCAtCalRec", &dPhiSCAtCalRec); // deltaPhiEleClusterAtCalo
+  tree->Branch("dEtaSCAtVtxCorr", &dEtaSCAtVtxCorr); 
   tree->Branch("TrackVtxD0", &TrackVtxD0);
   tree->Branch("TrackVtxDz", &TrackVtxDz);
   tree->Branch("trackFbrem", &trackFbrem); // trackFbrem 
@@ -329,8 +345,10 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("r9", &r9); // r9()
   tree->Branch("dEtaSCAtVtx", &dEtaSCAtVtx); // deltaEtaSuperClusterAtVtx 
   tree->Branch("dEtaSCAtCal", &dEtaSCAtCal); // deltaEtaEleClusterAtCalo
+  tree->Branch("dEtaSeedAtCal", &dEtaSeedAtCal); // deltaEtaEleClusterAtCalo
   tree->Branch("dPhiSCAtVtx", &dPhiSCAtVtx); // deltaPhiSuperClusterAtVtx 
   tree->Branch("dPhiSCAtCal", &dPhiSCAtCal); // deltaPhiEleClusterAtCalo
+  tree->Branch("dPhiSeedAtCal", &dPhiSeedAtCal); // deltaPhiEleClusterAtCalo
   tree->Branch("sigmaEtaEtaRec", &sigmaEtaEtaRec); // sigmaEtaEta()
   tree->Branch("sigmaIetaIetaRec", &sigmaIetaIetaRec); // sigmaIetaIeta()
   tree->Branch("sigmaIphiIphiRec", &sigmaIphiIphiRec); // sigmaIphiIphi()
@@ -338,6 +356,7 @@ ShashlikTupleDumper::bookTree()
   tree->Branch("dEtaSCAtCalRec", &dEtaSCAtCalRec); // deltaEtaEleClusterAtCalo
   tree->Branch("dPhiSCAtVtxRec", &dPhiSCAtVtxRec); // deltaPhiSuperClusterAtVtx 
   tree->Branch("dPhiSCAtCalRec", &dPhiSCAtCalRec); // deltaPhiEleClusterAtCalo
+  tree->Branch("dEtaSCAtVtxCorr", &dEtaSCAtVtxCorr); 
   tree->Branch("TrackVtxD0", &TrackVtxD0);
   tree->Branch("TrackVtxDz", &TrackVtxDz);
   tree->Branch("trackFbrem", &trackFbrem); // trackFbrem 
@@ -429,8 +448,10 @@ ShashlikTupleDumper::clearQCDTreeBranchVectors()
   r9.clear();
   dEtaSCAtVtx.clear();
   dEtaSCAtCal.clear();
+  dEtaSeedAtCal.clear();
   dPhiSCAtVtx.clear();
   dPhiSCAtCal.clear();
+  dPhiSeedAtCal.clear();
   sigmaEtaEtaRec.clear();
   sigmaIetaIetaRec.clear();
   sigmaIphiIphiRec.clear();
@@ -438,6 +459,7 @@ ShashlikTupleDumper::clearQCDTreeBranchVectors()
   dEtaSCAtCalRec.clear();
   dPhiSCAtVtxRec.clear();
   dPhiSCAtCalRec.clear();
+  dEtaSCAtVtxCorr.clear();
   TrackVtxD0.clear();
   TrackVtxDz.clear();
   trackFbrem.clear();
@@ -526,8 +548,10 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   r9.clear();
   dEtaSCAtVtx.clear();
   dEtaSCAtCal.clear();
+  dEtaSeedAtCal.clear();
   dPhiSCAtVtx.clear();
   dPhiSCAtCal.clear();
+  dPhiSeedAtCal.clear();
   sigmaEtaEtaRec.clear();
   sigmaIetaIetaRec.clear();
   sigmaIphiIphiRec.clear();
@@ -535,6 +559,7 @@ ShashlikTupleDumper::clearTreeBranchVectors()
   dEtaSCAtCalRec.clear();
   dPhiSCAtVtxRec.clear();
   dPhiSCAtCalRec.clear();
+  dEtaSCAtVtxCorr.clear();
   TrackVtxD0.clear();
   TrackVtxDz.clear();
   trackFbrem.clear();
@@ -612,6 +637,12 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
   edm::Handle<reco::SuperClusterCollection> superClustersEE;
   iEvent.getByLabel(superClusterEE_,superClustersEE);
 
+  edm::Handle<EcalRecHitCollection> barrelRecHits ;
+  iEvent.getByLabel(barrelRecHitCollection_,barrelRecHits);
+
+  edm::Handle<EcalRecHitCollection> endcapRecHits ;
+  iEvent.getByLabel(endcapRecHitCollection_,endcapRecHits);
+
   edm::Handle<reco::PFClusterCollection> hcalPFClusters;
   iEvent.getByLabel(hcalPFClusterCollection_,hcalPFClusters);
 
@@ -639,6 +670,27 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
 
   hcalHelperBarrel_->checkSetup(iSetup) ;
   hcalHelperBarrel_->readEvent(iEvent) ;
+  hcalHelperEndcap_->checkSetup(iSetup) ;
+  hcalHelperEndcap_->readEvent(iEvent) ;
+
+  edm::ESHandle<CaloGeometry> caloGeom ;
+  edm::ESHandle<CaloTopology> caloTopo ;
+  iSetup.get<CaloGeometryRecord>().get(caloGeom);
+  iSetup.get<CaloTopologyRecord>().get(caloTopo);
+
+  edm::ESHandle<EcalSeverityLevelAlgo> sevLevel;
+  iSetup.get<EcalSeverityLevelAlgoRcd>().get(sevLevel);
+
+  // get the beamspot from the Event:
+  edm::Handle<reco::BeamSpot> recoBeamSpotHandle ;
+  iEvent.getByLabel(edm::InputTag("offlineBeamSpot"),recoBeamSpotHandle) ;
+  beamspot_ = recoBeamSpotHandle.product() ;
+
+  edm::ESHandle<TrackerGeometry> trackerHandle ;
+  iSetup.get<TrackerDigiGeometryRecord>().get(trackerHandle);
+
+  edm::ESHandle<MagneticField> magField ;
+  iSetup.get<IdealMagneticFieldRecord>().get(magField);
 
 
   // clear tree brach vectors
@@ -676,8 +728,10 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
     r9.push_back(gsfIter->r9());
     dEtaSCAtVtx.push_back(gsfIter->deltaEtaSuperClusterTrackAtVtx());
     dEtaSCAtCal.push_back(gsfIter->deltaEtaEleClusterTrackAtCalo());
+    dEtaSeedAtCal.push_back(gsfIter->deltaEtaSeedClusterTrackAtCalo());
     dPhiSCAtVtx.push_back(gsfIter->deltaPhiSuperClusterTrackAtVtx());
     dPhiSCAtCal.push_back(gsfIter->deltaPhiEleClusterTrackAtCalo());
+    dPhiSeedAtCal.push_back(gsfIter->deltaPhiSeedClusterTrackAtCalo());
     TrackVtxD0.push_back(gsfIter->gsfTrack()->dxy());
     TrackVtxDz.push_back(gsfIter->gsfTrack()->dz());
     trackFbrem.push_back(gsfIter->trackFbrem());
@@ -739,6 +793,49 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
       HoEwtE.push_back( HwtE/superCluster->energy());
     }
 
+
+    // recalculate eid variables
+
+    const CaloTopology * topology = caloTopo.product() ;
+    const CaloGeometry * geometry = caloGeom.product() ;
+    const EcalRecHitCollection * recHits = 0 ;
+    std::vector<int> recHitFlagsToBeExcluded ;
+    std::vector<int> recHitSeverityToBeExcluded ;
+    const EcalSeverityLevelAlgo * severityLevelAlgo = sevLevel.product() ;
+    if (gsfIter->isEB())
+    {
+      recHits = barrelRecHits.product() ;
+      recHitFlagsToBeExcluded = recHitFlagsToBeExcludedBarrel_ ;
+      recHitSeverityToBeExcluded = recHitSeverityToBeExcludedBarrel_ ;
+    }
+    else
+    {
+      recHits = endcapRecHits.product() ;
+      recHitFlagsToBeExcluded = recHitFlagsToBeExcludedEndcaps_ ;
+      recHitSeverityToBeExcluded = recHitSeverityToBeExcludedEndcaps_ ;
+    }
+
+    std::vector<float> covariances = EcalClusterTools::covariances(*seedCluster,recHits,topology,geometry,recHitFlagsToBeExcluded,recHitSeverityToBeExcluded,severityLevelAlgo) ;
+    std::vector<float> localCovariances = EcalClusterTools::localCovariances(*seedCluster,recHits,topology,recHitFlagsToBeExcluded,recHitSeverityToBeExcluded,severityLevelAlgo) ;
+
+    sigmaEtaEtaRec.push_back(sqrt(covariances[0]));
+    sigmaIetaIetaRec.push_back(sqrt(localCovariances[0]));
+    sigmaIphiIphiRec.push_back(sqrt(localCovariances[2]));
+
+    dEtaSCAtVtxRec.push_back(gsfIter->deltaEtaSuperClusterTrackAtVtx());
+    dEtaSCAtCalRec.push_back(gsfIter->deltaEtaEleClusterTrackAtCalo());
+    dPhiSCAtVtxRec.push_back(gsfIter->deltaPhiSuperClusterTrackAtVtx());
+    dPhiSCAtCalRec.push_back(gsfIter->deltaPhiEleClusterTrackAtCalo());
+
+    // simple correction of the 
+    float corrDeltaEtaScVtx(0);
+    if (fabs(gsfIter->eta())>1.47&&fabs(gsfIter->eta())<3.0) {
+      corrDeltaEtaScVtx = (float)func_corrDeltaEtaScVtx->Eval(fabs(gsfIter->eta()));
+      if (gsfIter->eta()<0) corrDeltaEtaScVtx = -corrDeltaEtaScVtx;
+    }
+    dEtaSCAtVtxCorr.push_back(gsfIter->deltaEtaSuperClusterTrackAtVtx()-corrDeltaEtaScVtx);
+
+    // track
     reco::GsfTrackRef gsfTrack = gsfIter->gsfTrack();
     if (!gsfTrack)
     {
@@ -774,8 +871,6 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
     PzTrackIn.push_back(gsfTrack->innerMomentum().Z());
     EtaTrackIn.push_back(gsfTrack->innerMomentum().eta());
     PhiTrackIn.push_back(gsfTrack->innerMomentum().phi());
-
-
 
   } // loop over gsfElectrons 
 
@@ -820,6 +915,8 @@ ShashlikTupleDumper::FillQCDScOnlyTree(const edm::Event& iEvent, const edm::Even
 
   hcalHelperBarrel_->checkSetup(iSetup) ;
   hcalHelperBarrel_->readEvent(iEvent) ;
+  hcalHelperEndcap_->checkSetup(iSetup) ;
+  hcalHelperEndcap_->readEvent(iEvent) ;
 
 
   // clear tree brach vectors
@@ -1011,6 +1108,8 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
 
   hcalHelperBarrel_->checkSetup(iSetup) ;
   hcalHelperBarrel_->readEvent(iEvent) ;
+  hcalHelperEndcap_->checkSetup(iSetup) ;
+  hcalHelperEndcap_->readEvent(iEvent) ;
 
   edm::ESHandle<CaloGeometry> caloGeom ;
   edm::ESHandle<CaloTopology> caloTopo ;
@@ -1236,8 +1335,15 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
       r9.push_back(-100);
       dEtaSCAtVtx.push_back(-100);
       dEtaSCAtCal.push_back(-100);
+      dEtaSeedAtCal.push_back(-100);
       dPhiSCAtVtx.push_back(-100);
       dPhiSCAtCal.push_back(-100);
+      dPhiSeedAtCal.push_back(-100);
+      dEtaSCAtVtxRec.push_back(-100);
+      dEtaSCAtCalRec.push_back(-100);
+      dPhiSCAtVtxRec.push_back(-100);
+      dPhiSCAtCalRec.push_back(-100);
+      dEtaSCAtVtxCorr.push_back(-100);
       TrackVtxD0.push_back(-100);
       TrackVtxDz.push_back(-100);
       trackFbrem.push_back(-100);
@@ -1329,6 +1435,7 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
         Hcone1 = hcalHelperEndcap_->hcalESumDepth1(bestSuperCluster);
         Hcone2 = hcalHelperEndcap_->hcalESumDepth2(bestSuperCluster);
       }
+      
       HoEcone.push_back((Hcone1+Hcone2)/bestSuperCluster.energy());
 
       // nearest rechit
@@ -1400,8 +1507,10 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
     r9.push_back(bestGsfElectron.r9());
     dEtaSCAtVtx.push_back(bestGsfElectron.deltaEtaSuperClusterTrackAtVtx());
     dEtaSCAtCal.push_back(bestGsfElectron.deltaEtaEleClusterTrackAtCalo());
+    dEtaSeedAtCal.push_back(bestGsfElectron.deltaEtaSeedClusterTrackAtCalo());
     dPhiSCAtVtx.push_back(bestGsfElectron.deltaPhiSuperClusterTrackAtVtx());
     dPhiSCAtCal.push_back(bestGsfElectron.deltaPhiEleClusterTrackAtCalo());
+    dPhiSeedAtCal.push_back(bestGsfElectron.deltaPhiSeedClusterTrackAtCalo());
     TrackVtxD0.push_back(bestGsfElectron.gsfTrack()->dxy());
     TrackVtxDz.push_back(bestGsfElectron.gsfTrack()->dz());
     trackFbrem.push_back(bestGsfElectron.trackFbrem());
@@ -1520,12 +1629,19 @@ ShashlikTupleDumper::FillTree(const edm::Event& iEvent, const edm::EventSetup& i
     //tcMatching.deltaEtaEleClusterAtCalo = ecAtCalo.dEta() ;
     //tcMatching.deltaPhiEleClusterAtCalo = ecAtCalo.dPhi() ;
 
-
+*/
     dEtaSCAtVtxRec.push_back(bestGsfElectron.deltaEtaSuperClusterTrackAtVtx());
     dEtaSCAtCalRec.push_back(bestGsfElectron.deltaEtaEleClusterTrackAtCalo());
     dPhiSCAtVtxRec.push_back(bestGsfElectron.deltaPhiSuperClusterTrackAtVtx());
     dPhiSCAtCalRec.push_back(bestGsfElectron.deltaPhiEleClusterTrackAtCalo());
-*/
+
+    // simple correction of the 
+    float corrDeltaEtaScVtx(0);
+    if (fabs(bestGsfElectron.eta())>1.47&&fabs(bestGsfElectron.eta())<3.0) {
+      corrDeltaEtaScVtx = (float)func_corrDeltaEtaScVtx->Eval(fabs(bestGsfElectron.eta()));
+      if (bestGsfElectron.eta()<0) corrDeltaEtaScVtx = -corrDeltaEtaScVtx;
+    }
+    dEtaSCAtVtxCorr.push_back(bestGsfElectron.deltaEtaSuperClusterTrackAtVtx()-corrDeltaEtaScVtx);
 
     // get hits energies and fractions
     const std::vector<std::pair<DetId,float> > seedHitsAndFracs = seedCluster->hitsAndFractions();
@@ -1815,6 +1931,4 @@ double ShashlikTupleDumper::getHcalwtE(const reco::PFRecHit * hit, const reco::P
   return sumDepthEng/sumDepth;
 
 }
-
-
 
