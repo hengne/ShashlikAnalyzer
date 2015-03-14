@@ -139,6 +139,7 @@ class ShashlikTupleDumper : public edm::EDAnalyzer
   std::vector<int> matchingMotherIDs_;
 
   bool printMCtable_;
+  bool redoHoE_;
 
   const CaloTowerConstituentsMap* theTowerConstituentsMap_;
   ElectronHcalHelper * hcalHelperBarrel_ ;
