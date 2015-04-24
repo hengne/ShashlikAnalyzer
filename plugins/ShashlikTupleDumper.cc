@@ -708,7 +708,9 @@ ShashlikTupleDumper::FillQCDTree(const edm::Event& iEvent, const edm::EventSetup
   for (reco::GsfElectronCollection::const_iterator gsfIter=gsfElectrons->begin();
        gsfIter!=gsfElectrons->end(); gsfIter++)
   {
-    if (gsfIter->pt()<10) continue;
+    //if (gsfIter->pt()<10) continue;
+    // use Sc Pt but keep the original direction
+    if (gsfIter->pt()/gsfIter->energy()*gsfIter->superCluster()->energy()<10) continue;
     Nparts++;
     // gsfElectron info
     E.push_back(gsfIter->energy());
